@@ -1,0 +1,1580 @@
+#===== Download Murray genomes =====#
+
+## Install enaBrowserTools
+# From: ~/
+wget https://github.com/enasequence/enaBrowserTools/archive/refs/tags/v1.6.zip
+unzip v1.6.zip
+rm v1.6.zip
+# Add to .bashrc:
+#alias enaDataGet="python3.5 enaBrowserTools-1.6/python3/enaDataGet.py"
+#alias enaGroupGet="python3.5 enaBrowserTools-1.6/python3/enaGroupGet.py"
+# enaBrowserTools seems to work with python 3.5 only
+
+# Genomes were downloaded using the BioSample accessions reported in Baker et al 2015
+# From: ~/Plasmids/Murray/Murray_collection
+for l in `cat Info/Table_S3-Collection_genomes-MurrayID-NCTC_ENA.txt`; do acc=$(echo $l | cut -d"-" -f2); enaGroupGet -f fastq -d Illumina/ ${acc}; mv Illumina/${acc}/ERR*/*gz Illumina/${acc}/; rmdir Illumina/${acc}/ERR*/; mv Illumina/${acc}/ Illumina/${l}; done &
+
+#___________________________________#
+
+
+
+#===== Genome Assembly =====#
+# From: ~/Plasmids/Murray/Murray_collection
+
+##### UNICYCLER
+mkdir UNICYCLER
+nohup bash run_unicycler-batch.sh
+
+##### QUAST
+mkdir QUAST
+quast -o QUAST/ UNICYCLER/*/assembly.fasta &
+
+##### Assemblies checking
+# Assembly metrics from the quast output were plotted to assess assembly quality
+# Assembly of the M666 and M639 genomes with unicycler generated a very short assembly length (<8 kb)
+# As a first step to assess reads quality, taxonomic assignment with kraken was performed:
+kraken --threads 8 --gzip-compressed --fastq-input ../Illumina/M639-ERS222766/* --output M639-ERS222766_kraken
+kraken --threads 8 --gzip-compressed --fastq-input ../Illumina/M666-ERS222787/* --output M666-ERS222787_kraken
+kraken-report M639-ERS222766_kraken > M639-ERS222766_kraken-report
+kraken-report M666-ERS222787_kraken > M666-ERS222787_kraken-report
+# The taxonomic assignment showed that >90% of the M639 and M666 reads belong to the Enterobacteriaceae family but only ~13% is assigned to the Shigella genus; it is unclear what the other proportion of the reads belong to
+# Reads were also converted to fasta to perform online taxonomic assignment with PhyloPythiaS+; e.g.: (NOT DONE)
+gunzip -c ERR316962_1.fastq.gz | awk '{if(NR%4==1) {printf(">%s\n",substr($0,2));} else if (NR%4==2) print;}' > ERR316962_1.fasta
+gunzip -c ERR316962_2.fastq.gz | awk '{if(NR%4==1) {printf(">%s\n",substr($0,2));} else if (NR%4==2) print;}' > ERR316962_2.fasta
+# Next, the reads quality was assessed with fastqc:
+fastqc Illumina/M639-ERS222766/* Illumina/M666-ERS222787/* -o FASTQC/
+
+##### Extract IDs of circular contigs per assembly/genome
+#From: ~/Plasmids/Murray/Murray_collection/UNICYCLER
+for d in `ls`; do prefix=$(echo $d | cut -d"-" -f1); grep 'circular' $d/assembly.fasta | cut -d" " -f1 > $d/${prefix}_circular_contigs-ids; done &
+# 280 contigs were circularised by unicycler
+
+#___________________________________#
+
+
+
+#===== Plasmid identification =====#
+
+##### Pfam A database
+# From: ~/
+wget http://ftp.ebi.ac.uk/pub/databases/Pfam/releases/Pfam33.0/Pfam-A.hmm.gz
+mkdir Pfam-HMM
+mv Pfam-A.hmm.gz Pfam-HMM
+
+##### plasmidverify (https://github.com/ablab/plasmidVerify)
+# From: ~/Plasmids/Murray/Murray_collection/UNICYCLER
+for d in `ls`; do mkdir ~/Plasmids/Murray/Murray_collection/PVERIFY/${d}; python2.7 ~/plasmidVerify/plasmidverify.py -f ${d}/assembly.fasta -o ~/Plasmids/Murray/Murray_collection/PVERIFY/${d} --hmm ~/Pfam-HMM/Pfam-A.hmm.gz -t 8; done &
+# Extract plasmid and chromosome contig IDs
+# From: ~/Plasmids/Murray/Murray_collection/PVERIFY
+for d in `ls`; do prefix=$(echo $d | awk -F"-" '{print $1}'); awk -F"," '{if ($2 == "Plasmid") {print $1}}' ${d}/assembly_result_table.csv > ${d}/${prefix}-pv_plasmid_ids; awk -F"," '{if ($2 != "Plasmid") {print $1}}' ${d}/assembly_result_table.csv > ${d}/${prefix}-pv_chromosome_ids; done
+# Add '>' to the plasmid and chromosome contig IDs
+for d in `ls`; do prefix=$(echo $d | awk -F"-" '{print $1}'); sed -i 's/^/>/' ${d}/${prefix}-pv_plasmid_ids; sed -i 's/^/>/' ${d}/${prefix}-pv_chromosome_ids; done
+# Extract plasmid and chromosome contig records
+for d in `ls`; do prefix=$(echo $d | awk -F"-" '{print $1}'); awk -F"," '{if ($2 == "Plasmid") {print $0}}' ${d}/assembly_result_table.csv > ${d}/${prefix}-pv_plasmid_records; awk -F"," '{if ($2 != "Plasmid") {print $0}}' ${d}/assembly_result_table.csv > ${d}/${prefix}-pv_chromosome_records; done
+# Remove plasmidverify intermediate files
+rm */{assembly_prodigal.log,assembly_genes.fa,assembly_proteins.fa,assembly_out_pfam,assembly_feature_table.txt}
+
+##### Merge IDs of circularised and putative plasmid contigs
+# Some contigs circularised by unicycler were filtered out by plasmidverify. This step rescues the ids of those contigs to add them to the list of contigs to be further analised
+# From: ~/Plasmids/Murray/Murray_collection
+for d in `ls PVERIFY/`; do prefix=$(echo $d | cut -d"-" -f1); cat PVERIFY/$d/*_plasmid_ids UNICYCLER/$d/*_circular_contigs-ids | sort -u > Predicted_plasmids/PVERIFY/UNICYCLER_ids/${prefix}-plasmid_ids; done
+
+##### Retrieve putative plasmid contig sequences
+# Make feature assembly tables from contig headers
+# From: ~/Plasmids/Murray/Murray_collection/UNICYCLER
+for d in `ls`; do prefix=$(echo $d | cut -d"-" -f1); grep -wf ../Predicted_plasmids/PVERIFY/UNICYCLER_ids/${prefix}-plasmid_ids ${d}/assembly.fasta | perl -pe 's{>}{}; s{ length=}{\t}; s{ depth=}{\t}; s{x}{}; s{ circular=}{\t}' > ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contig_headers/${prefix}-contig_headers.txt; sed -i "s/^/${prefix}\t/" ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contig_headers/${prefix}-contig_headers.txt; done
+cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contig_headers/* > ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contig_headers/contig_headers-all
+# Not sure why/if this was done: sed -i '/true$/!s/$/\tfalse/' ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contig_headers/contig_headers-all
+# Extract predicted plasmid contigs
+for d in `ls`; do prefix=$(echo $d | cut -d"-" -f1); mkdir ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contigs/${d}; one-liner ${d}/assembly.fasta; grep -A1 -wf ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_ids/${prefix}-plasmid_ids ${d}/assembly.fasta | perl -pe 's{--\n}{}' > ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contigs/${d}/${prefix}-plasmid_contigs.fasta; done &
+# Edit fasta headers to add the strain name
+# From: /home/ubuntu/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/UNICYCLER_contigs
+for d in `ls`; do prefix=$(echo $d | cut -d"-" -f1); sed -i "s/>/>${prefix}_/" ${d}/*fasta; done
+# Count number of putative plasmid contigs (pverify + unicycler cir) per genome
+grep -c '>' UNICYCLER_ids/* | cut -d"/" -f 2 | perl -pe 's{-plasmid_ids:}{\t}' > contigs_per_genome.txt
+
+##### Filter out assemblies with no plasmids as reported by NCTC
+# The "Assemblies_with_no_plasmids.txt" file contains a list of isolates for wich the NCTC reports no plasmids and pverify didn't identify any potential plasmid contig (34)
+# Cases where NCTC does not report plasmids but pverify finds potential plasmid contigs (n=68) are listed in the "Assemblies_with_plascontigs_only.txt" file
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/
+mkdir Assemblies_with_no_plasmids
+for l in `cat Assemblies_with_no_plasmids.txt`; do mv UNICYCLER_contigs/${l}-*/ Assemblies_with_no_plasmids/; done
+mv Assemblies_with_no_plasmids.txt Assemblies_with_no_plasmids
+
+##### Filter out remaining assemblies with no putative plasmids contigs
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/
+mkdir Assemblies_with_no_plasmid_contigs
+# List of assemblies with no putative plasmid contigs identified by plasmidverify (45, including the 34 listed in "Assemblies_with_no_plasmids/Assemblies_with_no_plasmids.txt")
+grep -w '0$' contigs_per_genome.txt | awk -F"\t" '{print $1}' > Assemblies_with_no_plasmid_contigs/Assemblies_with_no_plasmid_contigs.txt
+# Move dirs that were not identified when filtering out assemblies with no plasmids (as reported by NCTC) and no plasmid contigs (11)
+ls UNICYCLER_contigs | cut -d"-" -f1 > tmp1
+grep -wf Assemblies_with_no_plasmid_contigs/Assemblies_with_no_plasmid_contigs.txt tmp1 > tmp2
+for l in `cat tmp2`; do mv UNICYCLER_contigs/${l}-*/ Assemblies_with_no_plasmid_contigs/; done
+rm tmp*
+
+##### Circularise putative plasmid contigs
+
+## Preparing files
+# Concatenate all puttative plasmid contigs (4283 from 325 assemblies) into a temporary multifasta
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+cat UNICYCLER_contigs/*/* > UNICYCLER_contigs/all_contigs.fasta
+# List putative plasmid contigs (non-)circularised by unicycler
+grep 'circular' UNICYCLER_contigs/all_contigs.fasta | cut -d" " -f1 | perl -pe 's{>}{}' > circularised_contigs-unicycler.txt
+grep '>' UNICYCLER_contigs/all_contigs.fasta | grep -v 'circular' | cut -d" " -f1 | perl -pe 's{>}{}' > non-circularised_contigs-unicycler.txt
+# Make subdirectories for circlator
+cut -d"_" -f1 non-circularised_contigs-unicycler.txt | sort -u > dirnames_tmp
+for l in `cat dirnames_tmp`; do mkdir CIRCLATOR/${l}; done
+rm dirnames_tmp
+# Extract and move sequences (non-circularised_contigs-unicycler.txt) to circularise with circlator
+for l in `cat non-circularised_contigs-unicycler.txt`; do dir=$(echo ${l} | cut -d"_" -f1); grep -w -A1 ">${l}"  UNICYCLER_contigs/all_contigs.fasta >> CIRCLATOR/${dir}/${dir}-noncir_uni.fasta; done
+# Interleave and move read files
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/CIRCLATOR
+for d in `ls`; do fastaq interleave ~/Plasmids/Murray/Murray_collection/Illumina/${d}-*/*_1.fastq.gz ~/Plasmids/Murray/Murray_collection/Illumina/${d}-*/*_2.fastq.gz ${d}/${d}_reads.fastq; done &
+# List genomes that only contain contigs circularised by unicycler
+ls UNICYCLER_contigs/ | grep -v "fasta" | cut -d"-" -f1 > IDs
+grep -wvf CIRCLATOR/dirs-list.txt IDs > genomes_with_circular_con_only-unicycler.txt
+rm IDs
+
+## Install circlator (1.5.5) from Docker image
+# NOTE: Circlator is installed in CLIMB and runs well on PacBio data. However, it exits with error when running with options to work on illumina data, hence the installation/running from Docker
+sudo docker pull sangerpathogens/circlator
+
+## Run circlator
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/CIRCLATOR
+# Simplest way to run in interactive (-it) mode: sudo docker run --rm -it -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped /data/plasmids.fasta /data/reads.fastq /data/circlator_out-docker
+# INSIDE A FOR LOOP:
+# for d in `ls`; do cd ${d}; sudo docker run --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+# Inside a for loop with the Detached (-d) mode to run in the background, all circlator jobs are submitted at once. This cause many jobs to fail running and/or getting stuck (See: sudo docker ps -a | less -S OR sudo docker container ls -a | less -S).
+# Remove containers:
+# sudo docker rm -f $(sudo sudo docker ps -q)
+# Remove circlator output subdirectories:
+# for l in `cat dirs-list.txt`; do sudo rm -r ${l}/circlator_out; done
+# RUNNING IN BATCHES:
+# Create a list of subdirectories
+find . -maxdepth 1 -type d -name "M*" | sort | perl -pe 's{./}{}' > dirs-list.txt
+# Split subdirectories list (20 lines for each file, 15 files generated)
+split -l 20 -d dirs-list.txt dirs_part-
+# For loop per batch
+for d in `cat dirs_part-00`; do name=$(echo ${d} | tr [:upper:] [:lower:]); cd ${d}; sudo docker run --name ${name} --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+for d in `cat dirs_part-01`; do name=$(echo ${d} | tr [:upper:] [:lower:]); cd ${d}; sudo docker run --name ${name} --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+for d in `cat dirs_part-02`; do name=$(echo ${d} | tr [:upper:] [:lower:]); cd ${d}; sudo docker run --name ${name} --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+for d in `cat dirs_part-03`; do name=$(echo ${d} | tr [:upper:] [:lower:]); cd ${d}; sudo docker run --name ${name} --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+for d in `cat dirs_part-04`; do name=$(echo ${d} | tr [:upper:] [:lower:]); cd ${d}; sudo docker run --name ${name} --rm -d -v $(pwd):/data sangerpathogens/circlator circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out; cd ../; done &
+...
+rm dirs_part-*
+# Listing merged contigs (187)
+for l in `cat dirs-list.txt`; do grep '>' ${l}/circlator_out/06.fixstart.fasta | grep "\." | perl -pe 's{>}{}' >> merged_contigs.txt; done
+# Listing circularised contigs (13)
+for l in `cat dirs-list.txt`; do grep -v '#' ${l}/circlator_out/04.merge.circularise.log | grep '1$' | cut -f2 >> ../circularised_contigs-circlator.txt; done
+# Change permissions and ownership of circlator output directories
+for l in `cat dirs-list.txt`; do sudo chmod -R 766 ${l}/circlator_out/; done
+for l in `cat dirs-list.txt`; do sudo chown -c ubuntu:ubuntu ${l}/circlator_out; done
+
+## Moving contigs (processed by circlator and circularised by unicycler) into a new directory
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+# Create new directory
+mkdir Post-circlator_contigs
+# Move circlator output contigs
+for l in `cat CIRCLATOR/dirs-list.txt`; do mkdir Post-circlator_contigs/${l}; mv CIRCLATOR/${l}/circlator_out/06.fixstart.fasta Post-circlator_contigs/${l}/${l}_post-circlator.fna; done
+# Move assemblies with unicycler-circularised contigs only (not processed by circlator)
+for l in `cat genomes_with_circular_con_only-unicycler.txt`; do mkdir Post-circlator_contigs/${l}; mv UNICYCLER_contigs/${l}-*/*.fasta Post-circlator_contigs/${l}/${l}_post-unicycler.fna; done
+# Integrating unicycler-circularised contigs (not processed by circlator)
+perl -pe 's{\n}{_\n}' genomes_with_circular_con_only-unicycler.txt > tmp1
+grep -vf tmp1 circularised_contigs-unicycler.txt > tmp2
+for l in `cat tmp2`; do dir=$(echo ${l} | cut -d"_" -f1); grep -w -A1 "${l}"  UNICYCLER_contigs/all_contigs.fasta >> Post-circlator_contigs/${dir}/${dir}*fna; done
+rm tmp*
+rm UNICYCLER_contigs/all_contigs.fasta
+# one-liner
+for d in `ls Post-circlator_contigs/`; do one-liner Post-circlator_contigs/${d}/*fna; done
+# Extract all contigs ID
+# NOTE: The total number of contigs Post-circlator is 4053, including the 280 contgs circularised by unicycler
+grep '>' Post-circlator_contigs/*/*fna | cut -d">" -f2 | cut -d" " -f1 > Post-circlator_contigs-ids_list.txt
+
+##### Map to plasmids from iPlasmidDB
+# minimap2 v2.17-r941; pafpy v0.1.1
+
+## Prepare directories
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+mkdir -p MINIMAP2/Post-circlator_contigs-iPlasmidDB_all
+
+## minimap2 - vs all plasmids
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Post-circlator_contigs
+for d in `ls`; do minimap2 -x asm5 -t 8 -c ~/Plasmids/Murray/iPlasmidDB/v1/sequences/FNA/individual_files-nr/DEDUPE/dedupe_out.fasta ${d}/*.fna -o ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MINIMAP2/Post-circlator_contigs-iPlasmidDB_all/${d}.paf; done &
+# Filter out cases with no matches to plasmids from iPlasmidDB (22; hence 303 matched a target/ref plasmid)
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MINIMAP2/Post-circlator_contigs-iPlasmidDB_all
+mkdir assemblies_with_no_matches
+find . -type f -empty -exec mv -t ./assemblies_with_no_matches/ {} +
+# parsePAF
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+# Output directory can exist already, otherwise it'll be created
+parsePaf --paf_dir MINIMAP2/Post-circlator_contigs-iPlasmidDB_all/ --out PARSEPAF/Post-circlator_contigs-iPlasmidDB_all
+# Concatenate output files reporting target sequence coverage for visulation of matches-vs-coverage distribution in R
+head -n1 PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/M108_tcov.txt > PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/Post-circlator_contigs-iPlasmidDB_all-tcov.tab
+cat PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/*tcov.txt | grep -v 'Target_ID' >> PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/Post-circlator_contigs-iPlasmidDB_all-tcov.tab
+# 1-to-1 matches with >70% cov (346): awk -F"\t" '{if ($3 > 0.7 && $4 == 1) {print $NF}}' PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/Post-circlator_contigs-iPlasmidDB_all-tcov.tab | sort -u | wc -l
+
+##### Plasmidfinder (with abricate 1.0.1)
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+mkdir PLASMIDFINDER
+abricate -db plasmidfinder --minid 80 --mincov 60 --quiet --nopath --threads 8 Post-circlator_contigs/*/*fna > PLASMIDFINDER/Post-circlator_contigs-plasmidfinder_80id_60cov.txt &
+abricate -db plasmidfinder --minid 98 --mincov 98 --quiet --nopath --threads 8 Post-circlator_contigs/*/*fna > PLASMIDFINDER/Post-circlator_contigs-plasmidfinder_98id_98cov.txt &
+# NOTE: 645 different contigs contain a replicon match (awk -F"\t" '{ if (NR != 1) {print $2}}' PLASMIDFINDER/Post-circlator_contigs-plasmidfinder | sort -u | wc -l), compared to the 236 identified when coverage and identity is set to 98%
+# Count replicon matches per putative plasmid contig
+# List of post-circlator contigs
+grep '>' Post-circlator_contigs/*/*fna | cut -d">" -f2 | cut -d " " -f1 > PLASMIDFINDER/Post-circlator_contigs-list.txt
+# Replicon matches per contig
+for l in `cat PLASMIDFINDER/Post-circlator_contigs-list.txt`; do count=$(grep -wc ${l} PLASMIDFINDER/Post-circlator_contigs-plasmidfinder_80id_60cov.txt); echo -e "${l}\t${count}" >> PLASMIDFINDER/replicon_matches_per_contig.txt; done
+# List of contigs with replicon all_matches
+awk -F"\t" '{if ($2 > 0) {print $1}}' PLASMIDFINDER/replicon_matches_per_contig.txt > PLASMIDFINDER/contigs_with_replicon_matches.txt
+
+##### MOB typing
+# Pull MOB-suite from docker
+sudo docker pull kbessonov/mob_suite:3.0.1
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/
+# Prepare directory and input files
+mkdir MOB-suite
+# Copy input files
+cp -r Post-circlator_contigs/* MOB-suite/ &
+# Run MOB-suite
+cd MOB-suite
+for d in `ls`; do sudo docker run --rm -v $(pwd):/mnt/ "kbessonov/mob_suite:3.0.1" mob_recon --infile /mnt/${d}/${d}_post-*.fna --outdir /mnt/${d}/mob_recon_output -t -u -c -n 8; done &
+# Running mob_typer example: sudo docker run --rm -v $(pwd):/mnt/ "kbessonov/mob_suite:3.0.1" mob_typer --multi --infile /mnt/M110_post-circlator_cir.fna --out_file /mnt/mob_typer_output_cir.txt
+# Change permissions and ownership of circlator output directories
+for d in `ls`; do sudo chown -R -c ubuntu:ubuntu ${d}/mob_recon_output; done
+for d in `ls`; do sudo chmod -R 766 ${d}/mob_recon_output/; done
+# Removing input sequence files to avoid redundacy (original files are in the "Post-circlator_contigs" directory; extra copies are part of the mob_recon output (individual chromosome and plasmid fasta files))
+rm MOB-suite/*/*fna
+# Extract mob_recon molecule_type, rep_type and relaxase_type output for all contigs
+echo -e "contig_id\tmob_recon_cluster\tmob_recon_prediction\tmob_recon_rep\tmob_recon_mob" > MOB-suite/mob_recon_output-short.txt
+cat MOB-suite/*/mob_recon_output/contig_report.txt | grep -v 'sample_id' | awk -F"\t" '{print $5,$2,$3,$10,$12}' OFS="\t" | perl -pe 's{_len[\w=\.]+}{}' >> MOB-suite/mob_recon_output-short.txt
+# Extract mob_typer num_contigs, size, gc, rep_type, relaxase_type, mpf_type, orit_type, predicted_mobility
+echo -e "sample_id\tnum_contigs\tsize\tgc\trep_type(s)\trelaxase_type(s)\tmpf_type\torit_type(s)\tpredicted_mobility" > MOB-suite/mob_typer_output-short.txt
+cat MOB-suite/*/mob_recon_output/mobtyper_results.txt | grep -v 'sample_id' | awk -F"\t" '{print $1,$2,$3,$4,$6,$8,$10,$12,$14}' OFS="\t" | perl -pe 's{_post-\w+\.fna:}{-}' >> MOB-suite/mob_typer_output-short.txt
+# Replace mob-recon assigned plasmid cluster by plasmid IDs
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MOB-suite
+awk -F"\t" '{if (NR != 1) {print $1}}' mob_typer_output-short.txt > mob_typer_output-short_sampleIDs.txt
+for l in `cat mob_typer_output-short_sampleIDs.txt`; do g=$(echo $l | cut -d"-" -f1); c=$(echo $l | cut -d"-" -f2); ids=$(grep -E "${g}_\w+.+${c}" mob_recon_output-short.txt | cut -f1 | perl -pe 's{\n}{,}' | perl -pe 's{,$}{\n}'); echo -e "${l}---${ids}" >> mob_typer_output-short_plasmidIDs.txt; done
+for l in `cat mob_typer_output-short_plasmidIDs.txt`; do p=$(echo $l | awk -F"---" '{print $1}'); r=$(echo $l | awk -F"---" '{print $2}'); sed -i "s/${p}/${p}\t${r}/" mob_typer_output-short.txt; done
+sed -i 's/sample_id/sample_id\tcontigs/' mob_typer_output-short.txt
+# Predicted plasmids with 1 contig (426)
+awk -F"\t" '{ if ($3 == 1) {print $0}}' mob_typer_output-short.txt > mob_typer_output-short_1conplas.txt
+awk -F"\t" '{ if ($3 == 1) {print $2}}' mob_typer_output-short.txt > mob_typer_output-short_1conplas_IDs.txt
+# Predicted fragmented plasmids (284)
+awk -F"\t" '{ if ($3 > 1) {print $0}}' mob_typer_output-short.txt > mob_typer_output-short_fragplas.txt
+# Remove intermediate files
+rm mob_typer_output-short_sampleIDs.txt mob_typer_output-short_plasmidIDs.txt
+
+##### Putative plasmid contigs (4,053 from pverify(+circlator)) classification
+# Contigs were classified as "plasmid", "putative plasmid (extra)" and "other" using metadata from:
+# 1) Circularisation from unicycler or circlator
+# 2) Plasmid coverage and size ratio calculated from mapping against plasmids in iPlasmidDB
+# 3) Replicon region identified with abricate against seqs in plasmidfinder
+# 4) Mob region and classification from mob_recon
+# Classfication was based on the following criteria:
+  # Circular contigs
+  # if Contig COV >= 50% -> Plasmid1
+  # if Contig has REP -> Plasmid2
+  # if Contig has MOB -> Plasmid3
+  # if Contig is pred as plasmid by MOB_RECON -> Plasmid4 #####-> These were ultimately added to Put_Plasmid1, see below
+  # else Contig -> Put_Plasmid1
+  # Liner contigs
+  # if Contig COV >= 70% -> Plasmid5
+  # if Contig (COV >= 40% & COV <= 70%) & (SR <= 1.2 & SR >= 0.8) & has REP -> Plasmid6
+  # if Contig (COV >= 40% & COV <= 70%) & (SR <= 1.2 & SR >= 0.8) & has MOB -> Plasmid7
+  # if Contig (COV >= 40% & COV <= 70%) & (SR <= 1.2 & SR >= 0.8) & is pred as plasmid by MOB_RECON -> Plasmid8
+  # if Contig (COV >= 40% & COV <= 70%) & (SR <= 1.2 & SR >= 0.8) -> Put_Plasmid2
+  # else Contig -> Other (No list was exported for this bin. Metadata for all plasmids can retrieved from the Master table "Master_table")
+  # Plasmids from the else bin that maintained a (SR <= 1.2 & SR >= 0.8) were exported to "Putative_Plasmid_extra_list" for further analysis
+
+## Classfication output files
+# Classification was perfomed in RStudio (http://137.205.69.207/rstudio/) with code written by Wendy ""~/Murray_collection/Plasmid_prediction/PVERIFY/MINIMAP_all/Wendy/Pre-AB_era_plasmids/"
+# Output files were uploaded to CLIMB
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/
+mkdir Contigs_classification
+# sftp> put rstudio-export.zip /home/ubuntu/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification
+cd Contigs_classification
+unzip rstudio-export.zip
+rm rstudio-export.zip
+mkdir lists
+mv Plasmid* lists/
+mv Putative_Plasmid{1,2} lists/
+mv Putative_Plasmid_extra_list lists/
+sed -i 's/"//g' lists/Putative_Plasmid*
+sed -i 's/^M//' lists/Putative_Plasmid*
+mkdir tables
+mv Best_One_to_one_matches Identified_plasmids_stats.csv Master_table Putative_Plasmid_extra_df tables/
+# Update circular plasmid lists (1-4, Put_Plasmid1)
+# mob_recon classifies contigs as plasmids if they're are circular ("circular" tag from unicycler) with no other supporting data ("Plasmid4" list). We will consider these contigs putative plasmids awaiting further annotation. Hence, "Plasmid4" list was to compared to lists 1-3 and its unique entries added to Putative_Plasmid1.
+cat lists/Plasmid{1,2,3} | sort -u > lists/nr_Plasmid-123
+sort lists/Plasmid4 > lists/Plasmid4_sorted
+grep -vf lists/nr_Plasmid-123 lists/Plasmid4_sorted >> lists/Putative_Plasmid1
+rm lists/Plasmid4*
+sed -i 's/"//g' lists/nr_Plasmid-123
+sed -i 's/^M//' lists/nr_Plasmid-123
+# Concatenate nr list of linear contigs predicted as plasmids
+cat lists/Plasmid{5,6,7,8} | sort -u  > lists/nr_Plasmid-5678
+sed -i 's/"//g' lists/nr_Plasmid-5678
+# Concatenate nr lists of contigs predicted as plasmids
+cat nr_Plasmid-123 nr_Plasmid-5678 | sort -u > nr_Plasmid
+
+## Extract predicted plasmid contig sequences
+# From: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY
+# Prepare directories
+mkdir Contigs_classification/sequences
+mkdir Contigs_classification/sequences/plasmids
+mkdir Contigs_classification/sequences/plasmids/circular
+mkdir Contigs_classification/sequences/plasmids/linear
+mkdir Contigs_classification/sequences/putative_plasmids
+mkdir Contigs_classification/sequences/putative_plasmids/circular
+mkdir Contigs_classification/sequences/putative_plasmids/linear
+# Extract files
+cat Post-circlator_contigs/*/*.fna > Post-circlator_contigs.fna
+# Circular plasmid contigs (267)
+for l in `cat Contigs_classification/lists/nr_Plasmid-123`; do grep -w -A1 ${l} Post-circlator_contigs.fna > Contigs_classification/sequences/plasmids/circular/${l}.fna; done &
+# Linear plasmid contigs (147)
+for l in `cat Contigs_classification/lists/nr_Plasmid-5678`; do grep -w -A1 ${l} Post-circlator_contigs.fna > Contigs_classification/sequences/plasmids/linear/${l}.fna; done &
+# Putative circular plasmid contigs (26)
+for l in `cat Contigs_classification/lists/Putative_Plasmid1`; do grep -w -A1 ${l} Post-circlator_contigs.fna > Contigs_classification/sequences/putative_plasmids/circular/${l}.fna; done &
+# Putative linear plasmid contigs (32; 7 Putative_Plasmid2 + 25 Plasmid extra)
+for l in `cat Contigs_classification/lists/Putative_Plasmid2`; do grep -w -A1 ${l} Post-circlator_contigs.fna > Contigs_classification/sequences/putative_plasmids/linear/${l}.fna; done &
+for l in `cat Contigs_classification/lists/Putative_Plasmid_extra_list`; do grep -w -A1 ${l} Post-circlator_contigs.fna > Contigs_classification/sequences/putative_plasmids/linear/${l}.fna; done &
+
+#___________________________________#
+
+
+
+#===== Identified Murray plasmids - Clustering =====#
+
+## Preparing directories
+# From: ~/Plasmids/Murray/Murray_collection
+mkdir Identified_plasmids
+mkdir Identified_plasmids/Post-PVERIFY
+mkdir Identified_plasmids/Post-PVERIFY/FNAs
+mkdir Identified_plasmids/Post-PVERIFY/plasmids_metadata
+mkdir Identified_plasmids/Post-PVERIFY/MASH
+mkdir Identified_plasmids/Post-PVERIFY/MASH/sketches
+mkdir Identified_plasmids/Post-PVERIFY/MASH/dist
+mkdir Identified_plasmids/Post-PVERIFY/MASH/network
+# Make links to contig sequences (472 sequences)
+cd Identified_plasmids/Post-PVERIFY/FNAs/
+ln -s ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/sequences/plasmids/circular/*.fna .
+ln -s ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/sequences/plasmids/linear/*.fna .
+ln -s ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/sequences/putative_plasmids/circular/*.fna .
+ln -s ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/sequences/putative_plasmids/linear/*.fna .
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+# Get Year and genus info
+ls FNAs/ | perl -pe 's{.fna}{}' > contigs_id_list.txt
+for l in `cat contigs_id_list.txt`; do g=$(echo ${l} | cut -d"_" -f1); match=$(grep -w ${g} ~/Plasmids/Murray/Murray_collection/Info/Table_S2-Collection_info-Year_Genus.csv); echo -e "${l}\t${match}" >> plasmids_metadata/plasmid_contigs-Year_Genus.txt; done &
+# Get Host GC and wgs_genus
+for l in `cat contigs_id_list.txt`; do g=$(echo ${l} | cut -d"_" -f1); match=$(grep -w ${g} ~/Plasmids/Murray/Murray_collection/Info/Table_S3-Collection_genomes-HostGC_Genus.txt); echo -e "${l}\t${match}" >> plasmids_metadata/plasmid_contigs-HostGC_Genus.txt; done &
+# Get length and GC content info
+for f in `ls FNAs/`; do infoseq -sequence FNAs/${f} -only -name -length -pgc -heading N -columns N -delimiter \\t >> plasmids_metadata/plasmid_contigs-infoseq.txt; done &
+# Add source info to infoseq file
+for l in `cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/lists/nr_Plasmid-123`; do sed -i "s/${l}\t/${l}\tplas-c\t/" plasmids_metadata/plasmid_contigs-infoseq.txt; done
+for l in `cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/lists/nr_Plasmid-5678`; do sed -i "s/${l}\t/${l}\tplas-l\t/" plasmids_metadata/plasmid_contigs-infoseq.txt; done
+for l in `cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/lists/Putative_Plasmid1`; do sed -i "s/${l}\t/${l}\tputp-c\t/" plasmids_metadata/plasmid_contigs-infoseq.txt; done
+for l in `cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/lists/Putative_Plasmid2`; do sed -i "s/${l}\t/${l}\tputp-l\t/" plasmids_metadata/plasmid_contigs-infoseq.txt; done
+for l in `cat ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/lists/Putative_Plasmid_extra_list`; do sed -i "s/${l}\t/${l}\tputp-le\t/" plasmids_metadata/plasmid_contigs-infoseq.txt; done
+
+## MASH
+# Sketch sequence files
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/FNAs
+for f in `ls *fna`; do mash sketch $f; done &
+mv *msh ../MASH/sketches/
+# Make skecth reference database
+mash sketch -p 8 -o ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/sketches/Murray_plasmids *fna
+# Calculate mash distances
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH
+mash dist -p 8 -d 0.05 sketches/Murray_plasmids.msh sketches/*fna.msh > dist/Murray_plasmids_dist-210shashes.tab &
+sed -i 's/\//\t/; s/.fna//g' dist/Murray_plasmids_dist-210shashes.tab
+# Header insertion was performed locally at: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/MASH
+sed -i '1s/^/Reference\tQuery\tDist\tPval\tShashes\tThashes\n/' Murray_plasmids_dist-210shashes.tab
+
+## NETWORK
+# Selection of representative plasmid contigs
+# Representatives (sharing 900 hashes) were identified from the 472 contigs
+# Clusters were defined and assigned based on the network constructed from the distance data (Cytosacpe; clusterMaker app, "Connected components cluster" algorithmn)
+# Cluster assignment and sequence metadata (~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/MASH/nodes_metadata) were integrated into a table uploaded to: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/network/900shashes/Murray_plasmids_dist-900shashes-table.csv
+# The clusters table (Murray_plasmids_dist-900shashes-table.csv) was parsed in jupyter (code (clusters-Murrayi_plasmids.ipynb) is in Dropbox (~/Dropbox/ESPOD_fell/03_Project/iPlasmidDB/v1/MASH/Network) and ~/Plasmids/Murray/iPlasmidDB/v1/MASH/network) to select the shortest representative sequence per cluster.
+# The resulting files were uploaded to: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/network/900shashes
+
+# Extract IDs of representative contigs and singletons
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/network/900shashes
+awk -F"," '{ if (NR != 1) {print $6}}' cluster_representatives-minlen.csv > cluster_representatives-minlen_IDs.csv
+awk -F"," '{ if (NR != 1) {print $6}}' singletons.csv > singletons_IDs.csv
+
+# Remove "^M" character from cluster files
+sed -i 's/^M//' clusters/cluster_*
+
+## Preliminary (rapid) Prokka annotation
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/network/900shashes
+# Per cluster
+mkdir rapid_per-cluster_anno-prokka
+for f in `ls clusters/`; do cluster=$(echo $f | perl -pe 's{_ids.csv}{}'); mkdir rapid_per-cluster_anno-prokka/${cluster}; for l in `cat clusters/$f`; do prokka --outdir rapid_per-cluster_anno-prokka/${cluster}/${l} --prefix ${l} --locustag ${l} --plasmid ${l} --evalue 1e-05 ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/FNAs/${l}.fna; done; done &
+rm rapid_per-cluster_anno-prokka/*/*/errorsummary.val
+rm rapid_per-cluster_anno-prokka/*/*/*{fna,fsa,gbf,sqn,tbl,val}
+# Singletons
+mkdir rapid_per-cluster_anno-prokka/singletons
+for l in `cat singletons_IDs.csv`; do prokka --outdir rapid_per-cluster_anno-prokka/singletons/${l} --prefix ${l} --locustag ${l} --plasmid ${l} --evalue 1e-05 ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/FNAs/${l}.fna; done &
+rm rapid_per-cluster_anno-prokka/singletons/*/errorsummary.val
+rm rapid_per-cluster_anno-prokka/singletons/*/*{fna,fsa,gbf,sqn,tbl,val}
+# Rapid prokka annotations for cluster representatives (5831 proteins - 188 contigs)
+for l in `cat cluster_representatives-minlen_IDs.csv`; do awk '{if (NR != 1) {print $0}}' rapid_per-cluster_anno-prokka/*/${l}/${l}.tsv >> cluster_representatives-minlen_rapid-prokka.tsv; done
+awk -F"\t" '{print $NF}' cluster_representatives-minlen_rapid-prokka.tsv | sort -u | less -S
+# Products count (518 different)
+awk -F"\t" '{print $NF}' cluster_representatives-minlen_rapid-prokka.tsv | sort | uniq -c | sort -nr -k1 | perl -pe 's{^\s+}{}; s{ }{\t}' > cluster_representatives-minlen_rapid-prokka_product_count.tsv
+sed -i '1s/^/Count\tType\n/' cluster_representatives-minlen_rapid-prokka_product_count.tsv
+# Transposases count (45 different)
+grep -i 'transposase' cluster_representatives-minlen_rapid-prokka_product_count.tsv | grep -iv 'putative' > cluster_representatives-minlen_rapid-prokka_transposase_count.tsv
+sed -i '1s/^/Count\tType\n/' cluster_representatives-minlen_rapid-prokka_transposase_count.tsv
+# Resistance-related products count
+grep -i 'resistance\|drug' cluster_representatives-minlen_rapid-prokka_product_count.tsv > cluster_representatives-minlen_rapid-prokka_res_count.tsv
+# COGs count (230 different)
+awk -F"\t" '{if ($(NF -1) != "") {print $(NF - 1)}}' cluster_representatives-minlen_rapid-prokka.tsv | sort | uniq -c | sort -nr -k1 | perl -pe 's{^\s+}{}; s{ }{\t}' > cluster_representatives-minlen_rapid-prokka_COGs_count.tsv
+sed -i '1s/^/Count\tType\n/' cluster_representatives-minlen_rapid-prokka_COGs_count.tsv
+
+#___________________________________#
+
+
+
+#===== Identified Murray plasmids - Replicon and Mob typing =====#
+
+## Retrieve (abricate-plasmidfinder) replicon data
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+# Replicon data
+mkdir replicon_typing
+grep -wf contigs_id_list.txt ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/PLASMIDFINDER/Post-circlator_contigs-plasmidfinder_80id_60cov.txt > replicon_typing/Post-PVERIFY_contigs-plasmidfinder_80id_60cov.txt
+# Total number (355; 23 different types) of rep types identified
+awk -F"\t" '{print $6}' replicon_typing/Post-PVERIFY_contigs-plasmidfinder_80id_60cov.txt | perl -pe 's{_\w+$}{}' | sort | uniq -c | perl -pe 's{^\s+}{}; s{ }{\t}' > replicon_typing/rep_types-count.tsv
+sed -i '1s/^/Count\tType\n/' replicon_typing/rep_types-count.tsv
+# Mob data
+mkdir mob_typing
+# Total number (256) of mob types identified (220 contigs contain at least 1 mob region; 36 contigs contain multiple mob types (but except for two instances, the mob type is duplicated); 252 contigs do not have an identifiable mob type)
+grep -wf contigs_id_list.txt ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MOB-suite/mob_recon_output-short.txt | awk -F"\t" '{print $NF}' | grep -v "-" | perl -pe 's{,}{\n}' | sort | uniq -c | perl -pe 's{^\s+}{}; s{ }{\t}' > mob_typing/mob_types-count.tsv
+sed -i '1s/^/Count\tType\n/' mob_typing/mob_types-count.tsv
+
+#___________________________________#
+
+
+
+#===== Identified Murray plasmids - Putative plasmids =====#
+
+## Preparing directories
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+mkdir putative_plasmids
+mkdir putative_plasmids/clustering
+mkdir putative_plasmids/metadata
+mkdir putative_plasmids/preliminary_annotation-prokka
+
+## Clustering
+# All identified plasmids were clustered in Cytoscape (from Murray_plasmids_dist-210shashes.tab) with a 600 shared hashes threshold using clusterMaker ("Connected components cluster" algorithmn).
+# The corresponding table was exproted to the "Murray_plasmids_dist-600shashes-table.csv" file and uploaded to ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/putative_plasmids/clustering
+
+## Extract putative plamids data
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/putative_plasmids
+
+# Clusters
+grep "putp-" clustering/Murray_plasmids_dist-600shashes-table.csv | perl -pe 's{"}{}g' > metadata/Murray_putp_dist-600shashes-table.csv
+# IDs
+cut -d"," -f6 metadata/Murray_putp_dist-600shashes-table.csv > metadata/putp_IDs.txt
+# Classification data
+grep -wf metadata/putp_IDs.txt ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Contigs_classification/tables/Master_table | perl -pe 's{"}{}g' > metadata/classification_data_Master_table.tsv
+# annotation
+for l in `cat metadata/putp_IDs.txt`; do cp ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/network/900shashes/rapid_per-cluster_anno-prokka/*/${l}/${l}.tsv preliminary_annotation-prokka/; done
+
+## Selection
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/putative_plasmids
+mkdir selection
+
+# Table
+# A table with all plasmids data was exported from cytosacpe ("Murray_plasmids.cys" file) to "Murray_putplasmids_dist-600shashes-table.csv" having putative plasmids selected (A filter [contains "put"] for the "category" column was applied).
+# The table was opened with LibreOffice Calc and sorted by using the "selected" column. Unselected raws ("selected" column = false) corresponding to true plasmids were deleted. The files was then saved as a spreadsheet.
+
+# Representatives selection
+# The spreadsheet was sorted by "__ccCluster" and "size" (ascending). The main tab was then copied into a new one.
+# Representatives of each cluster with the smallest size were kept whilst the rest entries were deleted from the new tab. 32 entries out of 58 were selected as representatives.
+
+# Metadata
+# The following information was added to the new tab for the representatives of putative plasmids:
+# Is the sequence clustered with plasmids? Is it a Singleton?
+# What is the mob_recon prediction? Is it similar to a reference plasmid? Is it circular? Does it contain an identifiable replicon?
+# Does the sequence annotation revealed plasmid signature products?
+# Is the sequence similar to regions in complete bacterial chromosomes?
+
+# Plasmids selection
+# Plasmids from the list of putative plasmid representatives were selected primarily based on the basis of no containment in chromosomal sequences.
+# Plasmid selection was extended from representatives to cluster relatives and exported into a new tab in the spreadsheet.
+# The tab containing the selected plasmids was exported to a tab-separated file ("Selected_putplasmids_dist-600shashes-table.csv").
+# Selection tables were uploaded to: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/putative_plasmids/selection
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/putative_plasmids/selection
+# Extract selected plasmid (20) IDs
+awk -F"\t" '{if (NR != 1) {print $6}}' Selected_putplasmids_dist-600shashes-table.csv > Selected_putplasmids_IDs.txt
+# Extract non-selected plasmid (38) IDs
+grep -wvf Selected_putplasmids_IDs.txt ../metadata/putp_IDs.txt > Non-selected_putplasmids_IDs.txt
+# Update identified plasmid IDs
+grep -wvf Non-selected_putplasmids_IDs.txt ../../contigs_id_list.txt > tmp
+mv tmp ../../contigs_id_list.txt
+# Remove non-selected putative plasmid links (Updated number of plasmids: 434)
+for l in `cat Non-selected_putplasmids_IDs.txt`; do rm ../../FNAs/${l}*; done
+
+#___________________________________#
+
+
+
+#===== Identified Murray plasmids - Integrating MOB_RECON output =====#
+
+## Compare with MOB_RECON output
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+mkdir mob-suite
+# Links to mob-suite output
+ln -s ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MOB-suite/mob_typer_output-short_* ./mob-suite/
+# Counting number of plasmids identified by both our classification system and MOB_RECON in one contig (353)
+grep -cf contigs_id_list.txt mob-suite/mob_typer_output-short_1conplas_IDs.txt
+grep -cf mob-suite/mob_typer_output-short_1conplas_IDs.txt contigs_id_list.txt
+# Extract IDs
+grep -wf contigs_id_list.txt mob-suite/mob_typer_output-short_1conplas_IDs.txt > mob-suite/identified_by_both.txt
+# Identifying plasmids detected by our classification system as nearly complete and predicted as fragmented by MOB_RECON (22 contigs corresponding to 19 mob_recon plasmid assemblies)
+grep -cwf contigs_id_list.txt mob-suite/mob_typer_output-short_fragplas.txt
+grep -wof contigs_id_list.txt mob-suite/mob_typer_output-short_fragplas.txt > mob-suite/identified_by_mob_recon_asfrag.txt
+# Look for best (highest cov) "fragmented" and "one-to-one" matches in PARSEPAF output for the 22 contigs identified as fragmented by mob_recon
+for l in `cat mob-suite/identified_by_mob_recon_asfrag.txt`; do grep -w "${l}" ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/Post-circlator_contigs-iPlasmidDB_all-tcov.tab | awk '{if ($4 == 1) {print $0}}' | sort -nr -k3 | head -n1 >> mob-suite/identified_by_mob_recon_asfrag-bestparsepafmatches.txt; grep -w "${l}" ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/PARSEPAF/Post-circlator_contigs-iPlasmidDB_all/Post-circlator_contigs-iPlasmidDB_all-tcov.tab | awk '{if ($4 > 1) {print $0}}' | sort -nr -k3 | head -n1 >> mob-suite/identified_by_mob_recon_asfrag-bestparsepafmatches.txt; done
+# Extract IDs of plasmids exclusively identified by each approach
+# MOB_RECON (73)
+grep -wvf contigs_id_list.txt mob-suite/mob_typer_output-short_1conplas_IDs.txt > mob-suite/identified_by_mob_recon_only.txt
+# Classification system (81)
+grep -wvf mob-suite/mob_typer_output-short_1conplas_IDs.txt contigs_id_list.txt > mob-suite/identified_by_classystem_only.txt
+# Summary:
+# 507 plasmids in one contig were indentified when combining the output of our classification system (434) and MOB_RECON (426)
+# 73 were identified exclusively by MOB_RECON in one contig whereas 81 were identified by our classification system only, the remaining 353 plasmids were detected in common
+# ***NOTE***:
+# 22 plasmids detected in our classification system were also identified by MOB_RECON as fragmented (belonging to 19 plasmid assemblies)
+# Hence, THESE PLASMID CONTIGS WILL BE REPEATED in the "nearly complete" and "fragmented" plasmid lists
+
+## Update identified plasmid records
+# Plasmid IDs
+cat contigs_id_list.txt mob-suite/identified_by_mob_recon_only.txt | sort -u > tmp; mv tmp contigs_id_list.txt
+# FNAs
+for l in `cat mob-suite/identified_by_mob_recon_only.txt`; do grep -w -A1 ${l} ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/Post-circlator_contigs.fna > FNAs/${l}.fna; done &
+
+## Count number of detected plamids per Murray genome
+# Create list of Murray genome IDs (370)
+less ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/contigs_per_genome.txt | cut -f1 > genomes_list.txt
+# List circularised identified plasmids
+grep -wf contigs_id_list.txt ../../Predicted_plasmids/PVERIFY/circularised_contigs-all.txt > circularised_contigs_id_list.txt
+# Count identified plasmids per genome: in one contig, circularised and fragmented
+for l in `cat genomes_list.txt`; do one=$(grep -c "${l}_" contigs_id_list.txt); cir=$(grep -c "${l}_" circularised_contigs_id_list.txt); frag=$(grep -c "${l}-" mob-suite/mob_typer_output-short_fragplas.txt); echo -e "${l}\t${one}\t${cir}\t${frag}"; done > plasmids_per_genome.txt
+# Join with contigs_per_genome table
+join -t $'\t' ../../Predicted_plasmids/PVERIFY/contigs_per_genome.txt plasmids_per_genome.txt > tmp; mv tmp plasmids_per_genome.txt
+# Extract year of isolation and number of plasmids identified experimetally
+for l in `cat genomes_list.txt`; do awk -v l="$l" -F"\t" '{ if ($1 == l) {print $1,$5,$14}}' OFS="\t" ../../Info/Table_S2-Collection_info.csv; done > tmp
+join -t $'\t' plasmids_per_genome.txt tmp > join.txt; mv join.txt plasmids_per_genome.txt
+rm tmp
+# Extract wgs_genus and identified plasmids (Baker et al.)
+for l in `cat genomes_list.txt`; do awk -v l="$l" -F"\t" '{ if ($1 == l) {print $1,$11,$47}}' OFS="\t" ../../Info/Table_S3-Collection_genomes.txt; done > tmp
+join -t $'\t' plasmids_per_genome.txt tmp > join.txt; mv join.txt plasmids_per_genome.txt
+rm tmp
+# Total number of putative plasmid contigs (n=4283)
+awk -F"\t" '{ sum+=$2 } END {print sum}' plasmids_per_genome.txt
+# Total number of one-contig plasmids (n=507)
+awk -F"\t" '{ sum+=$3 } END {print sum}' plasmids_per_genome.txt
+# Total number of circularised plasmid contigs (n=279)
+awk -F"\t" '{ sum+=$4 } END {print sum}' plasmids_per_genome.txt
+# Total number of fragmented plasmids (n=284)
+awk -F"\t" '{ sum+=$5 } END {print sum}' plasmids_per_genome.txt
+# Total number of identified plasmids (n=791)
+awk -F"\t" '{ sum+=($3+$5) } END {print sum}' plasmids_per_genome.txt
+# Total number of plasmids identified experimentally (n=342)
+awk -F"\t" '{ sum+=$7 } END {print sum}' plasmids_per_genome.txt
+# Total number of plasmids identified by Baker et. al (n=332)
+awk -F"\t" '{ sum+=$9 } END {print sum}' plasmids_per_genome.txt
+
+# NOTE:
+# 115 genomes do not contain identifiable plasmids: awk -F"\t" '{if ($3 == 0 && $5 == 0) {print $0}}' plasmids_per_genome.txt | wc -l
+
+### Merge data into a master table
+
+# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing
+sftp-climbliv
+get /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/plasmids_per_genome.txt
+# Data on the number of predicted plasmids was merged with the Unicycler assembly metrics and NCTC shipping status of the strains, resulting in the following files:
+# master_table-short.csv
+# master_table-short_plus_lab_status.csv
+
+### Rename plasmids
+# Links to plasmids in the FNAs dir will be replaced by renamed copies of the sequence files
+# Make a list of links to seqs
+ls -l FNAs/ | grep 'home' | awk -F"/" '{print $NF}' > links.txt
+# Copy seq files with new name
+for l in `cat links.txt`; do pref=$(echo $l | perl -pe 's{.fna}{}'); cp FNAs/${l} FNAs/pMUR-${pref}.fna; done &
+# Update fasta headers for new files
+for f in `ls FNAs/pMUR-M*`; do sed -i 's/^>/>pMUR-/' ${f}; done &
+# Remove file links
+for l in `cat links.txt`; do rm FNAs/${l}; done
+rm links.txt
+# Make list of seqs that remain to be renamed
+ls FNAs/ | grep -v 'pMUR' > files.txt
+# Rename remaining files and update fasta headers
+for l in `cat files.txt`; do pref=$(echo $l | perl -pe 's{.fna}{}'); mv FNAs/${l} FNAs/pMUR-${pref}.fna; done &
+for f in `cat files.txt`; do sed -i 's/^>/>pMUR-/' FNAs/pMUR-${f}; done &
+rm files.txt
+
+### Copy and rename fragmented plasmid sequences
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+mkdir FNAs_fragplas
+for l in `awk -F"\t" '{if (NR != 1) {print $1}}' mob-suite/mob_typer_output-short_fragplas.txt`; do murray=$(echo ${l} | cut -d"-" -f1); plasid=$(echo ${l} | cut -d"-" -f2); cp /home/ubuntu/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MOB-suite/${murray}/mob_recon_output/plasmid_${plasid}.fasta FNAs_fragplas/pMUR-${murray}_${plasid}.fna; done
+for f in `ls FNAs_fragplas/`; do id=$(echo ${f} | perl -pe 's{.fna}{}'); sed -i "s/^>[A-Za-z0-9]\+_/>${id}-/"  FNAs_fragplas/${f}; done
+
+#### NOTE:
+# The 22 single-contig plasmids that are also part of fragmented plasmids identified by mob_recon, and that of the genome assembly identified as possible contamination, will be removed from the final master and network for the paper.
+# A list of the 23 plamids to remove was placed at:
+# ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+
+#___________________________________#
+
+
+
+#===== Identified Murray plasmids (n=791 -> 768 after 23 duplicates/put. contamination removal) - comparison with iPlasmidDB v1.1 (n=40757) =====#
+
+## MASH
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+
+# Update mash sketches
+# Remove sketches made for preliminary set of Murray identified plasmids (n=472; K-mer size=21; hashes=1000)
+rm MASH/sketches/*.msh
+# Make new sketches (K-mer size=14; hashes=1000) for the 791 Murray identified plasmids (both those in 1 contig and the fragmented ones)
+find FNAs/ -name *fna > MASH/input_fna_files.txt
+find FNAs_fragplas/ -name *fna >> MASH/input_fna_files.txt
+for l in `cat MASH/input_fna_files.txt`; do fname=$(echo ${l} | cut -d"/" -f2 | perl -pe 's{.fna}{}'); mash sketch -k 14 -p 8 -o MASH/sketches/${fname} ${l}; done &
+# Make new skecth reference database
+find MASH/sketches/ -name *msh > MASH/input_msh_files.txt
+mash paste MASH/sketches/Murray_plasmids -l MASH/input_msh_files.txt &
+# Update distances for mash network
+mash dist -p 8 -d 0.05 MASH/sketches/Murray_plasmids.msh -l MASH/input_msh_files.txt > MASH/dist/Murray_plasmids_dist-210shashes.tab
+sed -i 's/FNAs\///g; s/FNAs_fragplas\///g; s/.fna//g; s/\//\t/; 1s/^/Reference\tQuery\tDist\tPval\tShashes\tThashes\n/' MASH/dist/Murray_plasmids_dist-210shashes.tab
+# The mash distance table was transferred to ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/MASH/all
+# Network
+# Murray plasmids were clustered first with the "Connected components cluster" algorithmn from the clusterMaker app in Cytosacpe;
+# then with the "MCL cluster" using the Shared hashes as Array source and otherwise defaults values
+
+# Identify homologous plasmids from iPlasmidDB v1.1 (n=40757)
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+# Make output directories
+mkdir -p MASH/vs_iPlasmidDBv1.1/output_files
+# Calculate plasmid-by-plasmid mash distances (210shashes min) vs sequences in iPlasmidDB
+for l in `cat MASH/input_msh_files.txt`; do fname=$(echo $l | perl -pe 's{MASH/sketches/}{}; s{.msh}{}'); mash dist -p 8 -d 0.05 ~/Plasmids/Murray/iPlasmidDB/v1.1/mash/sketches/iPlasmidDB-genbank.msh ${l} > MASH/vs_iPlasmidDBv1.1/output_files/${fname}.out.txt; done &
+# Extract nr list of matches for all Murray plasmids
+cat MASH/vs_iPlasmidDBv1.1/output_files/* | cut -f1 | awk -F"/" '{print $NF}' | perl -pe 's{.fna}{}' | sort -u > MASH/vs_iPlasmidDBv1.1/nr_matches_list.txt
+# Count matches per Murray plasmid
+wc -l MASH/vs_iPlasmidDBv1.1/output_files/* | perl -pe 's{ +}{}; s{ }{\t}' | sort -nr -k1 > MASH/vs_iPlasmidDBv1.1/matches_per_plasmid.txt
+# Note: 63237 matches were identified in total (4923 nr). The number of matches varied between 0 (n=177) and 676.
+# Make best match per plasmid table
+awk -F"\t" '{ if ($1 == 0) {print $2}}' MASH/vs_iPlasmidDBv1.1/matches_per_plasmid.txt > no_matches.tmp
+awk -F"\t" '{ if ($1 == 1) {print $2}}' MASH/vs_iPlasmidDBv1.1/matches_per_plasmid.txt > one_match.tmp
+awk -F"\t" '{ if (NR !=1 && $1 > 1) {print $2}}' MASH/vs_iPlasmidDBv1.1/matches_per_plasmid.txt > mult_match.tmp
+for l in `cat no_matches.tmp`; do name=$(echo $l | perl -pe 's{MASH/vs_iPlasmidDBv1.1/output_files/}{}; s{.out.txt}{}'); echo -e "No_match\t${name}\t1\t1\t0\t0" >> MASH/vs_iPlasmidDBv1.1/best_matches.tsv; done
+for l in `cat one_match.tmp`; do name=$(echo $l | perl -pe 's{MASH/vs_iPlasmidDBv1.1/output_files/}{}; s{.out.txt}{}'); cat ${l} >> MASH/vs_iPlasmidDBv1.1/best_matches.tsv; done
+for l in `cat mult_match.tmp`; do name=$(echo $l | perl -pe 's{MASH/vs_iPlasmidDBv1.1/output_files/}{}; s{.out.txt}{}'); sort -k3,3n ${l} | head -n1 >> MASH/vs_iPlasmidDBv1.1/best_matches.tsv; done
+perl -pe 's{sequences/FNA/individual_files/}{}; s{FNAs/}{}; s{FNAs_fragplas/}{}; s{/}{\t}; s{.fna}{}g' MASH/vs_iPlasmidDBv1.1/best_matches.tsv | awk -F"\t" '{print $2,$1,$3,$4,$5,$6}' OFS="\t" | sort -k1,1 | sed '1s/^/ID\tMash_match\tDist\tPval\tShashes\tThashes\n/' > parsed.tmp; mv parsed.tmp MASH/vs_iPlasmidDBv1.1/best_matches.tsv
+rm *.tmp
+
+## BLAST
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+# Make output directories
+mkdir -p BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files
+
+# Merge contigs in fragmented plasmids
+mkdir FNAs_fragplas_merged
+for l in `ls FNAs_fragplas`; do fname=$(echo ${l} | perl -pe 's{.fna}{}'); grep -v '>' FNAs_fragplas/${l} | sed "s/^/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN/; 1s/^/>${fname}\n/" > FNAs_fragplas_merged/${fname}.merged.fna; one-liner FNAs_fragplas_merged/${fname}.merged.fna; done
+
+# Identify homologous plasmids (min query cov=70%) from iPlasmidDB v1.1 (n=40757)
+# One-contig plasmids
+for l in `ls FNAs/`; do fname=$(echo ${l} | perl -pe 's{.fna}{}'); blastn -query FNAs/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' | sort -k 14nr,14 -k 3,3 -k 13nr,13 > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/${fname}.out.txt; done &
+# Fragmented plasmids
+for l in `ls FNAs_fragplas_merged/`; do fname=$(echo ${l} | perl -pe 's{.merged.fna}{}'); blastn -query FNAs_fragplas_merged/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' | sort -k 14nr,14 -k 3,3 -k 13nr,13 > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/${fname}.out.txt; done &
+# Extract nr list of matches for all Murray plasmids
+cat BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/* | cut -f3 | sort -u > BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list.txt
+# Count matches per Murray plasmid
+wc -l BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/* | perl -pe 's{ +}{}; s{ }{\t}' | sort -nr -k1 > BLAST/vs_iPlasmidDBv1.1/BLASTN/matches_per_plasmid.txt
+# Note: Matches against 9099 different plasmid sequences (min query cov=70%) were detected. Number of HSP varied from 0 (n=55) to 10581.
+# Make best match per plasmid table
+awk -F"\t" '{ if ($1 == 0) {print $2}}' BLAST/vs_iPlasmidDBv1.1/BLASTN/matches_per_plasmid.txt > no_matches.tmp
+awk -F"\t" '{ if ($1 == 1) {print $2}}' BLAST/vs_iPlasmidDBv1.1/BLASTN/matches_per_plasmid.txt > one_match.tmp
+awk -F"\t" '{ if (NR !=1 && $1 > 1) {print $2}}' BLAST/vs_iPlasmidDBv1.1/BLASTN/matches_per_plasmid.txt > mult_match.tmp
+for l in `cat one_match.tmp mult_match.tmp`; do head -n1 ${l} >> BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv; done
+# Blasting seqs with no matches over 70% cov
+for l in `cat no_matches.tmp`; do name=$(echo $l | perl -pe 's{BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/}{}; s{.out.txt}{}'); grep ${name} input_files.txt; done | perl -pe 's{fragplas}{fragplas_merged}; s{.fna}{}' > no_matches-infiles.tmp
+mkdir BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-below70cov
+for l in `cat no_matches-infiles.tmp`; do name=$(echo ${l} | cut -d"/" -f2); blastn -query ${l}* -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | sort -k 14nr,14 -k 3,3 -k 13nr,13 > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-below70cov/${name}.out.txt; done &
+for l in `cat no_matches.tmp`; do name=$(echo $l | perl -pe 's{BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/}{}; s{.out.txt}{}'); head -n1 BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-below70cov/${name}* >> BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv; done
+for l in `wc -l BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-below70cov/* | perl -pe 's{ +}{}; s{ }{\t}' | sort -nr -k1 | awk -F"\t" '{if ($1 == 0) {print $2}}'`; do name=$(echo $l | perl -pe 's{BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-below70cov/}{}; s{.out.txt}{}'); echo -e "${name}\tNA\tNo_match\tNA\tNA\t0\tNA\tNA\tNA\tNA\tNA\tNA\t0\t0" >> BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv; done
+sort -k1,1 BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv | sed '1s/^/ID\tID_len\tBlast_match\tmatch_len\taln_len\tmatch_iden\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqcovhsp\tqcovs\n/' > parsed.tmp; mv parsed.tmp BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv
+# NOTE: Similarity values varied ranging 74-100% iden | 0-100% cov
+rm *.tmp
+# Join mash/BLASTn best matches
+join -t $'\t' --header MASH/vs_iPlasmidDBv1.1/best_matches.tsv BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv > mash-blastn_best_matches.tsv
+
+# Matches against Li et al. plasmids
+cat BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/* | grep 'Li' | less -S
+
+# BLAST against iPlasmidDB v1.1 with no minimun coverage
+mkdir -p BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov
+# One-contig plasmids
+for l in `ls FNAs/`; do fname=$(echo ${l} | perl -pe 's{.fna}{}'); blastn -query FNAs/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | sort -k 14nr,14 -k 3,3 -k 13nr,13 > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov/${fname}.out.txt; done &
+# Fragmented plasmids
+for l in `ls FNAs_fragplas_merged/`; do fname=$(echo ${l} | perl -pe 's{.merged.fna}{}'); blastn -query FNAs_fragplas_merged/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | sort -k 14nr,14 -k 3,3 -k 13nr,13 > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov/${fname}.out.txt; done &
+# Extract nr list of matches for all Murray plasmids
+cat BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov/* | cut -f3 | sort -u > BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list-no_min_cov.txt
+# Extract nr list of matches for selected Murray plasmids (duplicates/contamination removed)
+ls BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov/* > files.tmp
+grep -vf to_remove.txt files.tmp > files_sel.tmp
+for f in `cat files_sel.tmp`; do cat $f >> extracted.tmp; done
+cut -f3 extracted.tmp | sort -u > BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list-no_min_cov-sel.txt
+rm *.tmp
+# Count plasmid matches: 15718 matches for selected pMUR
+wc -l BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list*
+# Select best HSP per plasmid match
+for l in `cat BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list-no_min_cov-sel.txt`; do grep -h ${l} BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files-no_min_cov/* | sort -k 14nr,14 -k 1,1 -k 13nr,13 > test_out.tmp; head -n1 test_out.tmp >> BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches-no_min_cov-sel.tsv; count=$(cut -f1 test_out.tmp | sort -u | wc -l); echo -e "${l}\t${count}" >> BLAST/vs_iPlasmidDBv1.1/BLASTN/matchingpMUR_per_iPlasmidDBplasmid-no_min_cov-sel.txt; done &
+rm test_out.tmp
+head -n1 BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches.tsv > cat.tmp
+cat BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches-no_min_cov-sel.tsv >> cat.tmp
+mv cat.tmp BLAST/vs_iPlasmidDBv1.1/BLASTN/best_matches-no_min_cov-sel.tsv
+# NOTE: the resulting file was used to coloured the full 210shashes iPlasmidDB network
+# From: ~/Dropbox/ESPOD_fell/03_Project/iPlasmidDB/mash/network
+scp iPlasmidDB-genbank-dist_210shashes.cys codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
+# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/Murray-iPlasmidDB_plasmids-R/v2/input_files
+scp best_matches-no_min_cov-sel.tsv codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
+# From: /nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
+sftp ubuntu@137.205.69.48
+get /home/ubuntu/Plasmids/Murray/iPlasmidDB/v1.1/annotation/ABRICATE/amr/amr_matches_per_plasmid.txt
+exit
+# The network was edited in CODON (see instructions below)
+
+## Homologous plasmids identified in iPlasmidDB (n=9186)
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+# Make output directories
+mkdir -p comparison/vs_iPlasmidDBv1.1/sequences/FNAs
+# Merged (mash + blastn) list of homologous plasmids
+cat MASH/vs_iPlasmidDBv1.1/nr_matches_list.txt BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list.txt | sort -u > comparison/vs_iPlasmidDBv1.1/iPlasmidDBv1.1_homologous_plasmids.txt
+# Plasmid matches shared by mash and blastn (n=4836)
+grep -cf MASH/vs_iPlasmidDBv1.1/nr_matches_list.txt BLAST/vs_iPlasmidDBv1.1/BLASTN/nr_matches_list.txt
+
+# Make/copy links to Murray and homologous plasmid sequences
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs
+# Murray plasmids (n=791)
+# One contig (n=507)
+ln -s /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/FNAs/*.fna .
+# Fragmented (n=284)
+ln -s /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/FNAs_fragplas/*fna .
+# iPlasmidDB plasmids (n=9186)
+for l in `cat ../../iPlasmidDBv1.1_homologous_plasmids.txt`; do cp -P ~/Plasmids/Murray/iPlasmidDB/v1.1/sequences/FNA/individual_files/${l}.fna . ; done
+# 9977 seqs in total
+
+# Make links to plasmid mash sketches (K-mer size=14; hashes=1000)
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences
+mkdir mash_sketches
+cd mash_sketches/
+# Murray plasmids (n=791)
+ln -s /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/MASH/sketches/pMUR-* .
+# iPlasmidDB plasmids (n=9186)
+for l in `cat ../../iPlasmidDBv1.1_homologous_plasmids.txt`; do ln -s /home/ubuntu/Plasmids/Murray/iPlasmidDB/v1.1/mash/sketches/${l}.msh . ; done
+# 9977 sketches in total
+# List of all (Murray + iPlasmidDB plasmids) sequences
+ls FNAs/ | perl -pe 's{.fna}{}' > ../Murray-iPlasmidDB_plasmids.txt
+
+
+## MASH NETWORK
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+# Make output directories
+mkdir -p mash_network/dist
+# Paste plasmid sketches
+find sequences/mash_sketches/ -name *msh  > sequences/input_msh_files.txt
+mash paste sequences/mash_sketches/Murray-iPlasmidDB_plasmids -l sequences/input_msh_files.txt
+# Calculate mash all-vs-all distance
+mash dist -p 8 -d 0.05 sequences/mash_sketches/Murray-iPlasmidDB_plasmids.msh -l sequences/input_msh_files.txt > mash_network/dist/Murray-iPlasmidDB_plasmids-dist_210shashes.tsv &
+sed -i 's/sequences\/FNA\/individual_files\///g; s/FNAs\///g; s/FNAs_fragplas\///g; s/.fna//g; s/\//\t/; 1s/^/Reference\tQuery\tDist\tPval\tShashes\tThashes\n/' mash_network/dist/Murray-iPlasmidDB_plasmids-dist_210shashes.tsv &
+# The mash distance table was transferred to /home/adrian/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/dist
+
+# DB source data
+# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir mash_network/metadata
+awk '{print $0,$0}' OFS="\t" Murray-iPlasmidDB_plasmids.txt | perl -pe 's{-}{\t}; s{pMUR}{Murray}' > mash_network/metadata/DB_source_data.txt
+sed -i '1s/^/DB\tAlt_ID\tID\n/' mash_network/metadata/DB_source_data.txt
+
+
+## Find best Murray plasmids mash/blastn matches against iPlasmidDB homologs
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir -p pMUR_best_matches/MASH
+mkdir pMUR_best_matches/BLAST
+
+# MASH
+mkdir pMUR_best_matches/MASH/sketches
+mkdir pMUR_best_matches/MASH/dist
+# Paste iPlasmidDB plasmid sketches
+for l in `grep -v 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do ls sequences/mash_sketches/${l}* >> input_iPlasmidDB.tmp; done &
+mash paste pMUR_best_matches/MASH/sketches/iPlasmidDB_plasmids -l input_iPlasmidDB.tmp
+# Calculate plasmid-by-plasmid mash distances (210shashes min) vs sequences in iPlasmidDB
+for l in `grep 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do path=$(ls sequences/mash_sketches/${l}*); mash dist -p 8 -d 0.05 pMUR_best_matches/MASH/sketches/iPlasmidDB_plasmids.msh ${path} > pMUR_best_matches/MASH/dist/${l}.out.txt; done &
+# Extract nr list of matches for all Murray plasmids (4923)
+cat pMUR_best_matches/MASH/dist/* | cut -f1 | awk -F"/" '{print $NF}' | perl -pe 's{.fna}{}' | sort -u > pMUR_best_matches/MASH/nr_matches_list.txt
+# Count matches per Murray plasmid
+wc -l pMUR_best_matches/MASH/dist/* | perl -pe 's{ +}{}; s{ }{\t}' | sort -nr -k1 > pMUR_best_matches/MASH/matches_per_plasmid.txt
+# Make best match per plasmid table
+awk -F"\t" '{ if ($1 == 0) {print $2}}' pMUR_best_matches/MASH/matches_per_plasmid.txt > no_matches.tmp
+awk -F"\t" '{ if ($1 == 1) {print $2}}' pMUR_best_matches/MASH/matches_per_plasmid.txt > one_match.tmp
+awk -F"\t" '{ if (NR !=1 && $1 > 1) {print $2}}' pMUR_best_matches/MASH/matches_per_plasmid.txt > mult_match.tmp
+for l in `cat no_matches.tmp`; do name=$(echo $l | perl -pe 's{pMUR_best_matches/MASH/dist/}{}; s{.out.txt}{}'); echo -e "No_match\t${name}\t1\t1\t0\t0" >> best_matches.tsv; done
+for l in `cat one_match.tmp`; do name=$(echo $l | perl -pe 's{pMUR_best_matches/MASH/dist/}{}; s{.out.txt}{}'); cat ${l} >> best_matches.tsv; done
+for l in `cat mult_match.tmp`; do name=$(echo $l | perl -pe 's{pMUR_best_matches/MASH/dist/}{}; s{.out.txt}{}'); sort -k3,3n ${l} | head -n1 >> best_matches.tsv; done
+perl -pe 's{sequences/FNA/individual_files/}{}; s{FNAs/}{}; s{FNAs_fragplas/}{}; s{/}{\t}; s{.fna}{}g' best_matches.tsv | awk -F"\t" '{print $2,$1,$3,$4,$5,$6}' OFS="\t" | sort -k1,1 | sed '1s/^/ID\tMash_match\tDist\tPval\tShashes\tThashes\n/' > parsed.tmp; mv parsed.tmp best_matches.tsv
+# Add number of matches
+grep -v 'total' pMUR_best_matches/MASH/matches_per_plasmid.txt | perl -pe 's{pMUR_best_matches/MASH/dist/}{}; s{.out.txt}{}' | awk -F"\t" 'BEGIN {print "ID\tMatches_mash"} {print $2,$1}' OFS="\t" > num_matches.tmp
+join -t $'\t' --header best_matches.tsv num_matches.tmp > tmp; mv tmp best_matches.tsv
+mv best_matches.tsv  pMUR_best_matches/MASH/
+rm *.tmp
+
+# BLAST
+mkdir pMUR_best_matches/BLAST/db
+mkdir pMUR_best_matches/BLAST/output
+# Make a blast database
+for l in `cat iPlasmidDBv1.1_homologous_plasmids.txt`; do cat sequences/FNAs/${l}.* >> pMUR_best_matches/BLAST/db/iPlasmidDB_plasmids.fa; done &
+makeblastdb -dbtype nucl -in pMUR_best_matches/BLAST/db/iPlasmidDB_plasmids.fa -out pMUR_best_matches/BLAST/db/iPlasmidDB_plasmids
+# Identify homologs (min query cov=70%) from selected iPlasmidDB v1.1 plasmids
+# One-contig plasmids
+for l in `ls ../../FNAs/`; do fname=$(echo ${l} | perl -pe 's{.fna}{}'); blastn -query ../../FNAs/${l} -db ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pMUR_best_matches/BLAST/db/iPlasmidDB_plasmids -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' | sort -k 14nr,14 -k 3,3 -k 13nr,13 > pMUR_best_matches/BLAST/output/${fname}.out.txt; done &
+# Fragmented plasmids
+for l in `ls ../../FNAs_fragplas_merged/`; do fname=$(echo ${l} | perl -pe 's{.merged.fna}{}'); blastn -query ../../FNAs_fragplas_merged/${l} -db ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pMUR_best_matches/BLAST/db/iPlasmidDB_plasmids -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' | sort -k 14nr,14 -k 3,3 -k 13nr,13 > pMUR_best_matches/BLAST/output/${fname}.out.txt; done &
+# Extract nr list of matches for all Murray plasmids (9106)
+cat pMUR_best_matches/BLAST/output/* | cut -f3 | sort -u > pMUR_best_matches/BLAST/nr_matches_list.txt
+# Count HSPs per Murray plasmid
+wc -l pMUR_best_matches/BLAST/output/* | perl -pe 's{ +}{}; s{ }{\t}' | sort -nr -k1 > pMUR_best_matches/BLAST/hsp_per_plasmid.txt
+# Count matches per Murray plasmid
+for f in `ls pMUR_best_matches/BLAST/output/`; do name=$(echo ${f} | perl -pe 's{.out.txt}{}'); count=$(cut -f3 pMUR_best_matches/BLAST/output/${f} | sort -u | wc -l); echo -e "${name}\t${count}" >> pMUR_best_matches/BLAST/matches_per_plasmid.txt; done &
+# Make best match per plasmid table
+awk -F"\t" '{ if ($1 == 0) {print $2}}' pMUR_best_matches/BLAST/hsp_per_plasmid.txt > no_matches.tmp
+awk -F"\t" '{ if ($1 == 1) {print $2}}' pMUR_best_matches/BLAST/hsp_per_plasmid.txt > one_match.tmp
+awk -F"\t" '{ if (NR !=1 && $1 > 1) {print $2}}' pMUR_best_matches/BLAST/hsp_per_plasmid.txt > mult_match.tmp
+for l in `cat no_matches.tmp`; do name=$(echo $l | perl -pe 's{pMUR_best_matches/BLAST/output/}{}; s{.out.txt}{}'); echo -e "${name}\tNA\tNo_match\tNA\t0\t0\tNA\tNA\tNA\tNA\t1\t0\t0\t0" >> pMUR_best_matches/BLAST/best_matches.tsv; done
+for l in `cat one_match.tmp mult_match.tmp`; do head -n1 ${l} >> pMUR_best_matches/BLAST/best_matches.tsv; done
+# Join number of matches and best matches
+sort -k1,1 pMUR_best_matches/BLAST/best_matches.tsv > j1.tmp
+sort -k1,1 pMUR_best_matches/BLAST/matches_per_plasmid.txt > j2.tmp
+join -t $'\t' j1.tmp j2.tmp | sed '1s/^/ID\tID_len\tBlast_match\tmatch_len\taln_len\tmatch_iden\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqcovhsp\tqcovs\tMatches_blast\n/' > tmp; mv tmp pMUR_best_matches/BLAST/best_matches.tsv
+# Join mash/BLASTn best matches
+join -t $'\t' --header pMUR_best_matches/MASH/best_matches.tsv pMUR_best_matches/BLAST/best_matches.tsv > pMUR_best_matches/mash-blastn_best_matches.tsv
+rm *.tmp
+
+
+## Find best Murray plasmids blastn matches against divergent plasmids from iPlasmidDB
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pMUR_best_matches
+mkdir -p BLAST/output/divergent_modern/AMR
+mkdir -p BLAST/output/divergent_modern/NoAMR
+mkdir -p BLAST/output/divergent_modern/Other
+
+# Lists of Divergent modern plasmids were obtained from the master table (mt dataframe) in RStudio and placed at:
+# ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pMUR_best_matches
+
+# Extract matches from blastp output files
+awk -F"\t" '{ if (NR != 1) {print $1}}' DivModernAMR.tsv > AMRlin_IDs.tmp
+awk -F"\t" '{ if (NR != 1) {print $1}}' DivModernNoAMR.tsv > NoAMRlin_IDs.tmp
+cat AMRlin_IDs.tmp NoAMRlin_IDs.tmp > AllDivlin.tmp
+for f in `ls BLAST/output/*txt`; do fname=$(echo $f | cut -d"/" -f3 | perl -pe 's{.txt}{}'); grep -f AMRlin_IDs.tmp ${f} > BLAST/output/divergent_modern/AMR/${fname}.AMRlin.txt; grep -f NoAMRlin_IDs.tmp ${f} > BLAST/output/divergent_modern/NoAMR/${fname}.NoAMRlin.txt; grep -vf AllDivlin.tmp ${f} > BLAST/output/divergent_modern/Other/${fname}.Otherlin.txt; echo ${fname} >> status.txt; done &
+
+# Parse output files
+# Extract Murray matches for divergent plasmids
+# AMR lineages
+for f in `ls BLAST/output/divergent_modern/AMR/*`; do awk -F"\t" '{print $3,$1,$14}' OFS="\t" ${f} | sort -u >> BLAST/DivModernAMR_matches-all.tsv; done &
+sort -k1,1 BLAST/DivModernAMR_matches.tsv > sorted.tmp; mv sorted.tmp BLAST/DivModernAMR_matches-all.tsv
+# Remove unwanted pMUR plasmids (repeated, contamination)
+grep -vf ../../../to_remove.txt BLAST/DivModernAMR_matches-all.tsv > BLAST/DivModernAMR_matches-selected.tsv
+# No AMR lineages
+for f in `ls BLAST/output/divergent_modern/NoAMR/*`; do awk -F"\t" '{print $3,$1,$14}' OFS="\t" ${f} | sort -u >> BLAST/DivModernNoAMR_matches-all.tsv; done &
+sort -k1,1 BLAST/DivModernNoAMR_matches-all.tsv > sorted.tmp; mv sorted.tmp BLAST/DivModernNoAMR_matches-all.tsv
+# Remove unwanted pMUR plasmids (repeated, contamination)
+grep -vf ../../../to_remove.txt BLAST/DivModernNoAMR_matches-all.tsv > BLAST/DivModernNoAMR_matches-selected.tsv
+# Clean temporary files
+rm *.tmp status.txt
+# 3646 out of 3713 (98%) divergent modern plasmids contain (70% cov) at least 1 Murray plasmid
+cat BLAST/DivModernAMR_matches-selected.tsv BLAST/DivModernNoAMR_matches-selected.tsv | cut -f1 | sort -u | wc -l
+cat DivModern* | grep -v 'ID' | cut -f1 | sort -u | wc -l
+# 506 out of 768 (66%) Murray plasmids are contained (70% cov) in at least 1 divergent modern plasmid
+cat BLAST/DivModernAMR_matches-selected.tsv BLAST/DivModernNoAMR_matches-selected.tsv | cut -f2 | sort -u | wc -l
+# The parsed files (DivModernAMR_matches-selected.tsv, DivModernNoAMR_matches-selected.tsv) were processed in RStudio
+
+
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977 -> 9954 after removal of selected Murray plasmids) network-based clustering - cytoscape/clusterMaker =====#
+
+## Connected components clusters
+# Clusters were defined and assigned based on a 210 shared-hashes network constructed from the distance data (Cytoscape; clusterMaker app, "Connected components cluster" algorithmn)
+
+## MCL cluster (Clusters: 337 Average size: 27.804 Maximum size: 732 Minimum size: 2)
+# 16 iterations
+# Granularity parameter (inflation value) = 2.5
+# Array source: Shared hashes
+# Edge weight cutoff - heuristic = 400
+# Assume edges are undirected
+
+# Run info was copied from the "Show tasks" tab and pasted into:
+# ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/clustering/mcl_cluster.log
+
+# The mcl and cc (connected components) clusters table was saved into:
+# ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/clustering/mcl_clusters-400shashes_threshold.csv
+# And uploaded to ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/clustering/MASH-CLUSTERMAKER
+
+
+## Clusters parsing
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir -p clustering/MASH-CLUSTERMAKER
+cd clustering/MASH-CLUSTERMAKER/
+# mclclusters_parser
+# The mclclusters_parser.py script (in bin and .bashrc with mclclusters_parser alias) was written to parse the clustering output from Cytoscape
+# mclclusters_parser requires pandas, which were installed from pyenv-python3.9.5 as such:
+# ~/Collaborations/Software/PYENV/.pyenv/versions/3.9.5/bin/pip3 install pandas ipython[all] jupyter
+mclclusters_parser --input mcl_clusters-400shashes_threshold.csv &
+# Connected components clusters (n=229)
+ls clusters/ | wc -l
+# Lineages (n=337)
+ls clusters/*/lineage* | wc -l
+# Outliers (n=343)
+wc -l clusters/*/outliers_ids.csv | less
+# Singletons (n=264)
+wc -l clusters/singletons.tsv
+# Plasmids per lineage
+wc -l clusters/*/*_ids.csv | sed 's/^[[:space:]]*//' | grep -v 'total' | sort -nr -k1,1 | awk -F" " '{print $2,$2,$1}' OFS="\t" | perl -pe 's{clusters/}{}; s{/}{\t}; s{_ids.csv}{}' > plasmids_per_lineage.tsv
+# Murray plasmids per lineage
+for f in `cut -f3 plasmids_per_lineage.tsv`; do count=$(grep -c 'pMUR' ${f}); echo -e "${f}\t${count}" >> pMUR.tmp; done &
+# Join output
+join -t $'\t' -1 3 -2 1 plasmids_per_lineage.tsv pMUR.tmp > join.tmp; mv join.tmp plasmids_per_lineage.tsv
+rm pMUR.tmp
+
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977) typing - mob_typer =====#
+
+# NOTES
+# mob_typer has a bug as an standing-alone pipeline (see commands/output below): it does not report sequence size in the output file when run in "sigle" (default) mode; yet, it does it when ran with the --multi option (i.e. treat multiple seqs in input as different plasmids).
+# This contrasts mob_typer behaviour when ran as part of mob_recon, where it reports total size for the fragmented plasmids it detects.
+# The issue can be by-passed by concatenating all contigs into a sigle sequence and running with the --multi flag, but then the number of contigs for the corresponding fragmented plasmid is missing from the output.
+# Hence, for fragmented plasmids is better to extract the mob_typer records from running mob_recon
+# From: ~/
+# sudo docker run --rm -v $(pwd):/mnt/ "kbessonov/mob_suite:3.0.1" mob_typer --infile /mnt/pMUR-M110_AB272.fna --out_file /mnt/test_mobtyper/test_mobtyper.tsv -n 8
+# sudo docker run --rm -v $(pwd):/mnt/ "kbessonov/mob_suite:3.0.1" mob_typer --infile /mnt/pMUR-M110_AB272.merged.fna --out_file /mnt/test_mobtyper/test_mobtyper-2.tsv -n 8 --multi
+# cat test_mobtyper/* | less -S
+# rm pMUR-M110_AB272.*
+
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+# Make output directory
+mkdir -p annotation/MOB_TYPER/
+
+# Retrieve mob_typer data for Murray fragmented plasmids
+# List plasmids with either 1 or more contigs
+# Plasmids with multiple contigs (n=284)
+grep -c '>' sequences/FNAs/* | awk -F"/" '{print $NF}' | awk -F":" '{if ($2 > 1) {print $1}}' | sed 's/.fna//' > Murray-iPlasmidDB_plasmids-multcontigs.txt
+# Retrieve data
+for l in `cat Murray-iPlasmidDB_plasmids-multcontigs.txt`; do geno=$(echo ${l} | sed 's/pMUR-//' | awk -F"_" '{print $1}'); plas=$(echo ${l} | sed 's/pMUR-//' | awk -F"_" '{print $NF}'); grep "${plas}" ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MOB-suite/${geno}/mob_recon_output/mobtyper_results.txt | perl -pe "s{^.+?${plas}}{${l}}" >> annotation/MOB_TYPER/mob_typer-multcontigs.txt; done
+
+# Run mob_typer for the remaining plasmids
+# Plasmids with one contig (n=9693)
+grep -c '>' sequences/FNAs/* | awk -F"/" '{print $NF}' | awk -F":" '{if ($2 == 1) {print $1}}' | sed 's/.fna//' > Murray-iPlasmidDB_plasmids-onecontig.txt
+mkdir annotation/MOB_TYPER/tmp_reports
+# Start a screen
+# From: ~/.
+screen -S MOB_SUITE_pMUR
+cd ~/Prophage_analysis/environments/MOB_Suite
+mkdir Murray_jobs
+cd Murray_jobs/
+conda activate mob_suite
+# Running mob_typer
+for f in `cat ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/Murray-iPlasmidDB_plasmids-onecontig.txt`; do perl -pe "s{^>.+}{>${f}}" ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${f}.fna > ${f}.fna; mob_typer --infile ${f}.fna --out_file ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/MOB_TYPER/tmp_reports/${f}.txt --num_threads 8 --multi; rm ${f}.fna; done
+# Deattach screen
+# Ctrl+a, then d, and then exit (ctrl+d)
+# List running screens
+screen -ls
+# Reattach screen
+screen -r MOB_SUITE_pMUR
+# If the process has terminated, exit screen
+conda deactivate
+cd ../
+rmdir Murray_jobs/
+# exit
+
+# Join individual mob_typer reports
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/MOB_TYPER
+cat tmp_reports/* | grep -wv 'sample_id' > mob_typer-onecontig.txt
+head -n1 tmp_reports/COMPASS-CP021194.1.txt > mob_typer.txt
+cat mob_typer-onecontig.txt mob_typer-multcontigs.txt | sort -k1 >> mob_typer.txt
+rm -r mob_typer-multcontigs.txt mob_typer-onecontig.txt tmp_reports/
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977) replicon, AMR and Virulence genes - Abricate v1.0.1 =====#
+
+## AMR genes
+
+# Create a non-redudndant database for abricate
+# Multiple instances of miss annotated AMR genes were identified in megares, particularly putative CTX genes which encode transposases instead.
+# As not all megares genes cann be trusted, the database was not considered when redoing the AMR genes search
+cd /home/linuxbrew/.linuxbrew/Cellar/abricate/1.0.1/libexec/db/
+mkdir cd-hit_res
+cat card/sequences ncbi/sequences argannot/sequences resfinder/sequences > cd-hit_res/sequences-all
+cd cd-hit_res
+cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
+rm sequences-all
+mv sequences.clstr ../abricate/sequences-amr.clstr
+makeblastdb -in sequences -title cd-hit_res -dbtype nucl -hash_index
+
+# Make output directory
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir -p annotation/ABRICATE/amr
+
+# Run abricate against cd-hit_res with 80% min iden & 30 min cov
+# Make input files list
+find sequences/FNAs/ -name *fna  > sequences/input_fna_files.txt
+# ABRICATE
+abricate -db cd-hit_res --minid 80 --mincov 30 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv &
+# Number of AMR genes identified: 21842
+wc -l annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv
+# Number of AMR genes identified (=>80% cov): 21381
+head -n1 annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv > annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv
+awk -F"\t" '{ if ($10 >= 80) {print $0}}' annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv >> annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv
+wc -l annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv
+# Number of AMR genes identified in Murray plasmids: 3
+grep -c 'pMUR' annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv
+# Number of AMR genes identified in Murray plasmids (=>80% cov): 3
+grep -c 'pMUR' annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv
+# Number of plasmids containing AMR genes: 3832
+cut -f2 annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv | sort -u | wc -l
+# Number of plasmids containing AMR genes (=>80% cov): 3819
+cut -f2 annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv | sort -u | wc -l
+# Count AMR matches per plasmid (=>80% cov)
+for l in `cat Murray-iPlasmidDB_plasmids.txt`; do count=$(grep -wc ${l} annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.30cov-cd-hit_res.tsv); echo -e "${l}\t${count}" >> annotation/ABRICATE/amr/amr_matches_per_contig.txt; done &
+# Add data to master table
+head -n1 annotation/MOB_TYPER/mob_typer.txt > Murray-iPlasmidDB_plasmids_master_table.txt
+grep -v 'sample_id' annotation/MOB_TYPER/mob_typer.txt | sort -k1,1 >> Murray-iPlasmidDB_plasmids_master_table.txt
+sort -k1,1 annotation/ABRICATE/amr/amr_matches_per_contig.txt > tmp_join
+sed -i '1s/^/ID\tAMR_genes\n/' tmp_join
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+# Make shorter table for suppl data
+cut -f2-6,10- annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv > annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.AMR_genes.tsv
+# AMR genes occurrence
+echo -e "COUNT\tGENE\tDATABASE\tACCESSION\tPRODUCT_RESISTANCE" > annotation/ABRICATE/amr/amr_matches_count.tsv
+awk -F"\t" '{ if (NR != 1) {print $5,$8,$9,$10}}' OFS="\t" annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.AMR_genes.tsv | sort | uniq -c | sort -nr -k1 | perl -pe 's{^\s+}{}; s{ }{\t}' >> annotation/ABRICATE/amr/amr_matches_count.tsv
+# NOTE: multiple gene names are duplicated on this count because of upper/lower case instances, different accessions linked to the same gene name or suffixes
+# The only AMR genes (marA; 3 instances) identiied in Murray plasmids come from card
+
+
+## Virulence genes
+
+# Create a non-redudndant database for abricate
+cd /home/linuxbrew/.linuxbrew/Cellar/abricate/1.0.1/libexec/db/
+mkdir cd-hit_vir
+cat vfdb/sequences ecoli_vf/sequences > cd-hit_vir/sequences-all
+cd cd-hit_vir/
+cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
+mv sequences.clstr sequences-vir.clstr
+mv sequences-vir.clstr ../abricate/
+rm sequences-all
+makeblastdb -in sequences -title cd-hit_vir -dbtype nucl -hash_index
+
+# Make output directory
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir annotation/ABRICATE/virulence
+
+# Run abricate against cd-hit_vir with 80% min iden & 30 min cov
+abricate -db cd-hit_vir --minid 80 --mincov 30 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv &
+# Remove 'int' gene instances
+grep -v 'int' annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv > tmp
+mv tmp annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv
+# Number of Vir genes identified: 27378
+wc -l annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv
+# Number of Vir genes identified (=>80% cov): 25348
+head -n1 annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv > annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv
+awk -F"\t" '{ if ($10 >= 80) {print $0}}' annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv >> annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv
+wc -l annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv
+# Number of Vir genes identified in Murray plasmids: 1574
+grep -c 'pMUR' annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv
+# Number of Vir genes identified in Murray plasmids (=>80% cov): 1421
+grep -c 'pMUR' annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv
+# Number of plasmids containing Vir genes: 5316
+cut -f2 annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.30cov-cd-hit_vir.tsv | sort -u | wc -l
+# Number of plasmids containing Vir genes (=>80% cov): 4243
+cut -f2 annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv | sort -u | wc -l
+# Count virulence matches per plasmid (=>80% cov)
+for l in `cat Murray-iPlasmidDB_plasmids.txt`; do count=$(grep -wc ${l} annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv); echo -e "${l}\t${count}" >> annotation/ABRICATE/virulence/virulence_matches_per_contig.txt; done &
+# Add data to master table
+sort -k1,1 annotation/ABRICATE/virulence/virulence_matches_per_contig.txt > tmp_join
+sed -i '1s/^/ID\tVir_genes\n/' tmp_join
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+# Make shorter table for suppl data
+cut -f2-6,10- annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.80cov-cd-hit_vir.tsv > annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.Vir_genes.tsv
+# Vir genes occurrence
+echo -e "COUNT\tGENE\tDATABASE\tACCESSION\tPRODUCT_RESISTANCE" > annotation/ABRICATE/virulence/virulence_matches_count.tsv
+awk -F"\t" '{ if (NR != 1) {print $5,$8,$9,$10}}' OFS="\t" annotation/ABRICATE/virulence/Murray-iPlasmidDB_plasmids.Vir_genes.tsv | sort | uniq -c | sort -nr -k1 | perl -pe 's{^\s+}{}; s{ }{\t}' >> annotation/ABRICATE/virulence/virulence_matches_count.tsv
+# NOTE: multiple gene names are duplicated on this count because of upper/lower case instances, different accessions linked to the same gene name or suffixes
+
+
+## Plasmid replicons - plasmidfinder
+
+# Make output directory
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir annotation/ABRICATE/plasmidfinder
+
+# Run abricate against cd-hit_vir with 80% min iden & 60 min cov
+abricate -db plasmidfinder --minid 80 --mincov 60 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > annotation/ABRICATE/plasmidfinder/Murray-iPlasmidDB_plasmids.60cov-plasmidfinder.tsv &
+# Number of replicons identified: 14013
+wc -l annotation/ABRICATE/plasmidfinder/Murray-iPlasmidDB_plasmids.60cov-plasmidfinder.tsv
+# Number of replicons identified in Murray plasmids: 685
+grep -c 'pMUR' annotation/ABRICATE/plasmidfinder/Murray-iPlasmidDB_plasmids.60cov-plasmidfinder.tsv
+# Number of plasmids containing a replicon: 9174
+cut -f2 annotation/ABRICATE/plasmidfinder/Murray-iPlasmidDB_plasmids.60cov-plasmidfinder.tsv | sort -u | wc -l
+# Count replicon matches per plasmid
+for l in `cat Murray-iPlasmidDB_plasmids.txt`; do count=$(grep -wc ${l} annotation/ABRICATE/plasmidfinder/Murray-iPlasmidDB_plasmids.60cov-plasmidfinder.tsv); echo -e "${l}\t${count}" >> annotation/ABRICATE/plasmidfinder/replicon_matches_per_contig.txt; done &
+# Add data to master table
+sort -k1,1 annotation/ABRICATE/plasmidfinder/replicon_matches_per_contig.txt > tmp_join
+sed -i '1s/^/ID\tReplicons\n/' tmp_join
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+
+
+# List of contigs with replicon all_matches
+# awk -F"\t" '{if ($2 > 0) {print $1}}' PLASMIDFINDER/replicon_matches_per_contig.txt > PLASMIDFINDER/contigs_with_replicon_matches.txt
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977) annotation - prokka v1.14.6 =====#
+
+## Prokka
+
+# iPlasmidDB
+# Plasmids in iPlasmidDB have been annotated with prokka. Output files are available from:
+# ~/Plasmids/Murray/iPlasmidDB/v1.1/annotation/PROKKA/
+
+# Murray plamids (n=791)
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY
+mkdir PROKKA
+find FNAs/ -name *.fna > input_files.txt
+find FNAs_fragplas/ -name *.fna >> input_files.txt
+nano run_prokka.sh
+# for l in `cat input_files.txt`; do bname=$(basename -s .fna ${l}); prokka --outdir PROKKA/${bname} --prefix ${bname} --locustag ${bname} --plasmid ${bname} --kingdom Bacteria --gcode 11 --cpus 8 ${l}; rm PROKKA/${bname}/*{.val,.ecn,.err,.fixedproducts,.fna,.fsa,.gbf,.sqn,.tbl,tmp*}; done
+sudo chmod 755 run_prokka.sh
+nohup bash run_prokka.sh &
+# NOTE: Only 737 out of 791 sequences were annotated (54 missing)
+ls PROKKA/ | wc -l
+ls PROKKA/*/*txt | wc -l
+# Find missing annotations
+# for d in `ls PROKKA/`; do [ -e PROKKA/${d}/${d}.txt ] && echo -e "${d}\tannotated" || echo -e "${d}\tNOT_annotated"; done | grep -c 'NOT'
+for d in `ls PROKKA/`; do [ ! -e PROKKA/${d}/${d}.txt ] && echo ${d} >> missing_annotations.txt; done
+# Completing annotation for missing files
+# NOTE:
+# Annotation for the above 54 files (missing_annotations.txt) failed because of the long contig names
+# FNAs_fragplas/pMUR-M649_AA176.fna was corrected by introducing a white space in the contig "pMUR-M649_AA176-41_length=8647_depth=0.66x_circular=true"; ran separately and removed from "missing_annotations.txt"
+rm -r PROKKA/pMUR-M649_AA176/
+prokka --outdir PROKKA/pMUR-M649_AA176 --prefix pMUR-M649_AA176 --locustag pMUR-M649_AA176 --plasmid pMUR-M649_AA176 --kingdom Bacteria --gcode 11 --cpus 8 FNAs_fragplas/pMUR-M649_AA176.fna; rm PROKKA/pMUR-M649_AA176/*{.val,.ecn,.err,.fixedproducts,.fna,.fsa,.gbf,.sqn,.tbl,tmp*}
+# The remaining 53 missing annotations (novel plasmids with long IDs) were corrected by assigning shorter unique contig IDs prior to running prokka
+# cut -c1-20 missing_annotations.txt | sort -u | wc -l
+# Backup for files before contig IDs modification
+mkdir FNAs_novelfragplas_backup
+for l in `cat missing_annotations.txt`; do cp FNAs_fragplas/${l}* FNAs_novelfragplas_backup/; done
+# Modify contig IDs
+for l in `cat missing_annotations.txt`; do short=$(echo ${l} | cut -c1-20); sed -i -r "s/^>pMUR-.+?-/>${short}-/" FNAs_fragplas/${l}.fna; done
+# Remove output of failed prokka jobs
+for l in `cat missing_annotations.txt`; do rm -r PROKKA/${l}; done
+rm nohup.out
+# Modify "run_prokka.sh" and run PROKKA
+# for l in `cat missing_annotations.txt`; do short=$(echo ${l} | cut -c1-20); prokka --outdir PROKKA/${l} --prefix ${l} --locustag ${short} --plasmid ${short} --kingdom Bacteria --gcode 11 --cpus 8 FNAs_fragplas/${l}.fna; rm PROKKA/${l}/*{.val,.ecn,.err,.fixedproducts,.fna,.fsa,.gbf,.sqn,.tbl,tmp*}; done
+nano run_prokka-shortIDs.sh
+# Remove unnecessary tmp files
+rm nohup.out missing_annotations.txt
+
+# Make links to prokka outputs
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir annotation/PROKKA
+# Tmp ID lists
+grep 'pMUR' Murray-iPlasmidDB_plasmids.txt > Murray.tmp
+grep -v 'pMUR' Murray-iPlasmidDB_plasmids.txt > iPlasmidDB.tmp
+# Make sym links to prokka outdirs
+for l in `cat Murray.tmp`; do ln -s ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/PROKKA/${l} annotation/PROKKA/; done
+for l in `cat iPlasmidDB.tmp`; do ln -s ~/Plasmids/Murray/iPlasmidDB/v1.1/annotation/PROKKA/${l} annotation/PROKKA/; done &
+# Remove tmp lists
+rm *.tmp
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmid (n=9977) CDS products (annotated by prokka) =====#
+
+## Transposases & integrases
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir annotation/PROKKA_products
+# Count transposases & integrases per plasmid
+for l in `cat Murray-iPlasmidDB_plasmids.txt`; do tran=$(grep -ic 'transposase' annotation/PROKKA/${l}/${l}.tsv); int=$(grep -ic 'integrase' annotation/PROKKA/${l}/${l}.tsv); echo -e "${l}\t${tran}\t${int}" >> annotation/PROKKA_products/transposases_and_integrases_per_plasmid.txt; done &
+
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977) metadata =====#
+
+## NCBI metadata for iPlasmidDB plasmids
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+for l in `cat iPlasmidDBv1.1_homologous_plasmids.txt`; do awk -F"\t" -v i=$l '{if ($1 == i) {print $0 >> "metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv"; exit;}}' ~/Plasmids/Murray/iPlasmidDB/v1.1/metadata/ncbi/iPlasmidDB-genbank-ncbi_metadata.tsv; done &
+# File header
+# less ~/Plasmids/Murray/iPlasmidDB/v1.1/metadata/ncbi/header_fields_list.txt
+# Selected fields
+# cut -d$'\t' -f 1,6,19,21,23,24,30 metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv | less -S
+# Year of isolation
+# awk -F"\t" '{print $23}' metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv | cut -d"-" -f1 | sort | uniq -c | less -S
+
+## Metadata for Murray plasmids
+# Number fields in Baker et al. metadata table header
+head -n1 ~/Plasmids/Murray/Murray_collection/Info/Table_S2-Collection_info.csv | perl -pe 's{\t}{\n}g' | nl -w 1 > ~/Plasmids/Murray/Murray_collection/Info/Table_S2-Collection_info-header_fields.txt
+# Extract metadata from Baker et al. suppl table
+for l in `grep 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do strain=$(echo ${l} | cut -d"-" -f2 | cut -d"_" -f1); awk -F"\t" -v a=$l -v i=$strain '{if ($1 == i) {print a,$0 >> "metadata/Murray_plasmids-metadata.tsv"; exit;}}' OFS="\t" ~/Plasmids/Murray/Murray_collection/Info/Table_S2-Collection_info.csv; done
+
+# Murray strains taxonomy
+# KrakenBracken
+# Daniel performed the taxonomic assignment or reads and contigs for the Murray genomes using kraken2 and bracken
+# The results are stored in ubuntu@bacteriophage in CLIMB at: ~/Prophages/Murray_genomes/Illumina/KrakenBracken_output
+# Selected output files were copied
+# From: ~/Plasmids/Murray/Murray_collection
+mkdir -p KrakenBracken/Reads
+mkdir KrakenBracken/UNICYCLER
+sftp-dan
+get /home/ubuntu/Prophages/Murray_genomes/Illumina/KrakenBracken_output/MC_taxonomic_assignment_* KrakenBracken/
+get -r /home/ubuntu/Prophages/Murray_genomes/Illumina/KrakenBracken_output/Reads/Report KrakenBracken/Reads
+get -r /home/ubuntu/Prophages/Murray_genomes/Illumina/KrakenBracken_output/UNICYCLER/Report KrakenBracken/UNICYCLER
+exit
+# Join Reads and Assemblies output
+# From: ~/Plasmids/Murray/Murray_collection/KrakenBracken
+rm *_sort.txt
+join -t $'\t' MC_taxonomic_assignment_reads.txt MC_taxonomic_assignment_unicycler.txt > MC_taxonomic_assignment.tsv
+# To include missing lines (e.g. reads but not assembly data)
+# join -a 1 -t $'\t' MC_taxonomic_assignment_reads.txt MC_taxonomic_assignment_unicycler.txt > MC_taxonomic_assignment.tsv
+# Extract KrakenBracken data per plasmid
+for l in `grep 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do strain=$(echo ${l} | cut -d"-" -f2 | cut -d"_" -f1); awk -F"\t" -v a=$l -v i=$strain '{if ($1 == i) {found=1; print a,$0 >> "metadata/Murray_plasmids-krakenbracken.tsv"; exit;}} END {if (!found) print a,i,"missing" >> "metadata/Murray_plasmids-krakenbracken.tsv"}' OFS="\t" ~/Plasmids/Murray/Murray_collection/KrakenBracken/MC_taxonomic_assignment.tsv; done
+# NOTE: the host of plasmid "pMUR-M639_3" has missing taxonomic assignment due to likely contamination resulting in assembly fragmentation
+# The most likely origin, however, is Escherichia coli
+# See:
+# ~/Plasmids/Murray/Murray_collection/KrakenBracken/Reads/Report/M639.report-reads_bracken_species.txt
+# ~/Plasmids/Murray/Murray_collection/KrakenBracken/UNICYCLER/Report/M639.report-unicycler.txt
+
+## Host (Genus & species) and isolation date
+# iPlasmidDB plasmids
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+awk -F"\t" '{print $1,$42,$40,$38,$36,$34,$32,$30,$23}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv > metadata/Murray-iPlasmidDB_plasmids-host_year.txt
+
+# Murray plasmids - host
+awk -F"\t" '{print $1,$4}' OFS="@" metadata/Murray_plasmids-krakenbracken.tsv | cut -d" " -f1 > plasmid_genus.tmp
+for l in `cat plasmid_genus.tmp`; do pl=$(echo ${l} | cut -d"@" -f1); ge=$(echo ${l} | cut -d"@" -f2); awk -F"\t" -v a=$ge -v i=$pl '{if ($7 == a) {found=1; print i,$2,$3,$4,$5,$6,$7 >> "pMUR_host-1.tmp"; exit;}} END {if (!found) print i,"NI","NI","NI","NI","NI","NI" >> "pMUR_host-1.tmp"}' OFS="\t" metadata/Murray-iPlasmidDB_plasmids-host_year.txt; done
+sort -k1,1 pMUR_host-1.tmp > tmp; mv tmp pMUR_host-1.tmp
+awk -F"\t" '{print $1,$4}' OFS="\t" metadata/Murray_plasmids-krakenbracken.tsv | sort -k1,1 > pMUR_host-2.tmp
+# Murray plasmids - isolation date
+awk -F"\t" '{print $1,$6}' OFS="\t" metadata/Murray_plasmids-metadata.tsv > pMUR_year.tmp
+join -t $'\t' pMUR_host-joined.tmp pMUR_year.tmp >> metadata/Murray-iPlasmidDB_plasmids-host_year.txt
+rm *tmp
+
+## BioSample location
+# Check header fields
+cat ~/Plasmids/Murray/iPlasmidDB/v1.1/metadata/ncbi/header_fields_list.txt
+# iPlasmidDB plasmids
+awk -F"\t" '{print $1,$19,$43}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv > location.tmp
+# Murray plasmids (unknown)
+for l in `grep 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do echo -e "$l\tUnknown\tUnknown" >> location.tmp; done
+sort -k1,1 location.tmp > metadata/Murray-iPlasmidDB_plasmids-location.txt
+rm location.tmp
+
+## BioSample isolation source
+# Check header fields
+cat ~/Plasmids/Murray/iPlasmidDB/v1.1/metadata/ncbi/header_fields_list.txt
+# iPlasmidDB plasmids
+awk -F"\t" '{print $1,$21,$22}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv > source.tmp
+# Murray plasmids (unknown)
+awk -F"\t" '{print $1,$9,"Unknown"}' OFS="\t" metadata/Murray_plasmids-metadata.tsv >> source.tmp
+sort -k1,1 source.tmp > metadata/Murray-iPlasmidDB_plasmids-source.txt
+rm source.tmp
+
+## BioSample accessions
+# Check header fields
+cat ~/Plasmids/Murray/iPlasmidDB/v1.1/metadata/ncbi/header_fields_list.txt
+# iPlasmidDB plasmids
+awk -F"\t" '{print $1,$18}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv > biosample.tmp
+# Murray plasmids
+perl -pe 's{-}{\t}' ~/Plasmids/Murray/Murray_collection/Info/Table_S3-Collection_genomes-MurrayID-NCTC_ENA.txt > murray_biosample.tmp
+for l in `grep 'pMUR' Murray-iPlasmidDB_plasmids.txt`; do strain=$(echo ${l} | cut -d"-" -f2 | cut -d"_" -f1); awk -F"\t" -v a=$l -v i=$strain '{if ($1 == i) {found=1; print a,$2 >> "pMUR_biosample.tmp"; exit;}} END {if (!found) print a,"missing" >> "pMUR_biosample.tmp"}' OFS="\t" ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/murray_biosample.tmp; done
+cat biosample.tmp pMUR_biosample.tmp | sort -k1,1 > metadata/Murray-iPlasmidDB_plasmids-biosample_acc.txt
+rm pMUR_biosample.tmp murray_biosample.tmp biosample.tmp
+#___________________________________#
+
+
+
+#===== Murray-iPlasmidDB plasmids (n=9977) integrons - integron_finder v2.0.1 =====#
+
+# Install integron_finder v2.0.1
+# From: ~/Prophage_analysis/environments
+mkdir Integron_finder && cd Integron_finder
+pyenv local miniconda3-4.7.12
+# conda search -c bioconda integron_finder
+conda create -n integron_finder_env -c bioconda integron_finder=2.0
+# Testing
+conda activate integron_finder_env
+mkdir integron_finder_test
+cd integron_finder_test/
+# Default values
+integron_finder --outdir run1 Pseudomonas_aeruginosa_pBT2101.fasta
+# Functional annotation, gbk output (considerable extra space taken - whole sequence) and more sensitive attC identification (considerably slower)
+integron_finder --local-max --func-annot --gbk --cpu 8 --outdir run2 Pseudomonas_aeruginosa_pBT2101.fasta
+# Promoters (integrase, Pc-int1 and Pc-int3) and AttI sites in integrons elements (considerably slower)
+integron_finder --local-max --func-annot --promoter-attI --gbk --cpu 8 --outdir run3 Pseudomonas_aeruginosa_pBT2101.fasta
+# Using union of HMM integrase hits rather than intersection (sees whether it exists cluster of attC sites nearby non integron-integrase…)
+integron_finder --local-max --func-annot --promoter-attI --union-integrases --gbk --cpu 8 --outdir run4 Pseudomonas_aeruginosa_pBT2101.fasta
+conda deactivate
+# Loop on files list
+head -n3 ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/non-cir_seqs.txt > files.tmp
+mkdir files_lin
+for l in `cat files.tmp`; do integron_finder --local-max --func-annot --promoter-attI --linear --cpu 8 --outdir files ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna; done
+mkdir files_circ
+for l in `cat files.tmp`; do integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir files_circ ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna; done
+
+# Output directory
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir -p annotation/INTEGRON_FINDER/output_files
+
+# Circular (all sequences ) and non-circular sequences
+# Circular iPlasmidDB (n=8435)
+awk -F"\t" '{if ($6 == "circular") {print $1 >> "annotation/INTEGRON_FINDER/cir_seqs.txt"; }}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv
+# Non-circular iPlasmidDB (n=751)
+awk -F"\t" '{if ($6 != "circular") {print $1 >> "annotation/INTEGRON_FINDER/non-cir_seqs.txt"; }}' OFS="\t" metadata/iPlasmidDBv1.1_homologous_plasmids-ncbi_metadata.tsv
+# Circular Murray (n=279)
+for l in `cat /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/circularised_contigs_id_list.txt`; do grep "${l}.fna" /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/input_files.txt; done | cut -d"/" -f2 | perl -pe 's{.fna}{}' >> annotation/INTEGRON_FINDER/cir_seqs.txt
+# Non-circular Murray (n=512)
+grep 'pMUR' annotation/INTEGRON_FINDER/cir_seqs.tmp > tmp
+grep -vf tmp /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/input_files.txt | cut -d"/" -f2 | perl -pe 's{.fna}{}' >> annotation/INTEGRON_FINDER/non-cir_seqs.txt
+rm tmp
+
+# Run integron_finder
+# Start a screen
+# From: ~/.
+screen -S IntFinder_pMUR
+cd ~/Prophage_analysis/environments/Integron_finder/
+conda activate integron_finder_env
+# Running integron_finder
+# Linear sequences
+for l in `cat ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/non-cir_seqs.txt`; do integron_finder --local-max --func-annot --promoter-attI --linear --cpu 8 --outdir ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/output_files ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna; done
+# Deattach screen
+# Ctrl+a, then d, and then exit (ctrl+d)
+# List running screens
+screen -ls
+screen -r IntFinder_pMUR
+# Circular sequences
+for l in `cat ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/cir_seqs.txt`; do integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/output_files ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna; done
+# Deattach screen
+# Ctrl+a, then d, and then exit (ctrl+d)
+screen -r IntFinder_pMUR
+conda deactivate
+# If the process has terminated, exit screen
+# exit
+
+## Count integrons identified per plasmid
+# Linear sequences
+for l in `cat annotation/INTEGRON_FINDER/non-cir_seqs.txt`; do COUNT=$(awk -F"\t" '{cal+=$2; com+=$3; I+=$4} END {print cal,com,I}' OFS="\t" annotation/INTEGRON_FINDER/output_files/Results_Integron_Finder_${l}/${l}.summary); echo -e "${l}\t${COUNT}\tlin" >> metadata/Murray-iPlasmidDB_plasmids-integrons.txt; done &
+# Circular sequences
+for l in `cat annotation/INTEGRON_FINDER/cir_seqs.txt`; do COUNT=$(awk -F"\t" '{cal+=$2; com+=$3; I+=$4} END {print cal,com,I}' OFS="\t" annotation/INTEGRON_FINDER/output_files/Results_Integron_Finder_${l}/${l}.summary); echo -e "${l}\t${COUNT}\tcir" >> metadata/Murray-iPlasmidDB_plasmids-integrons.txt; done &
+#___________________________________#
+
+
+
+#===== Update Murray-iPlasmidDB plasmid (n=9977) master table =====#
+# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+
+## Clustering
+perl -pe 's{",}{\t}g; s {,"}{\t}g; s{"}{}g; s{\t\t}{\t0\t}' clustering/MASH-CLUSTERMAKER/mcl_clusters-400shashes_threshold.csv | awk -F"\t" '{ if (NR != 1) {print $11,$1,$2}}' OFS="\t" | sort -k1,1 > clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
+sed -i '1s/^/ID\tCluster\tLineage\n/' clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+
+## Number of CDS (prokka)
+sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-cds_count.txt > tmp_join
+sed -i '1s/^/ID\tCDS_prokka\n/' tmp_join
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+
+## Transposases and integrases
+sort -k1,1 annotation/PROKKA_products/transposases_and_integrases_per_plasmid.txt > tmp_join
+sed -i '1s/^/ID\tTransposases\tIntegrases\n/' tmp_join
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+
+## BioSample accession
+sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-biosample_acc.txt > tmp_join
+sed -i '1s/^/ID\tBioSample\n/' tmp_join
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+
+## Host and date of isolation
+sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-host_year.txt > tmp_join
+sed -i '1s/^/ID\tsuperkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tCollection_date\n/' tmp_join
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+
+## Integrons (Integron_finder)
+sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-integrons.txt > tmp_join
+sed -i '1s/^/ID\tCALIN\tcomplete\tIn0\ttopology\n/' tmp_join
+# Check all lines have the same number of fields in the joined file
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
+join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
+rm tmp_join
+
+## Master table fields list
+head -n1 Murray-iPlasmidDB_plasmids_master_table.txt | perl -pe 's{\t}{\n}g' | nl -w 1 > Murray-iPlasmidDB_plasmids_master_table-fields.txt
+
+#___________________________________#
+
+
+
+#===== Network manipulation in codon =====#
+
+# Transfer files to codon
+# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
+scp Murray-iPlasmidDB_plasmids-dist_210shashes_figs.cys codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
+
+# Launching cytosacpe
+# Read for details: https://github.com/leoisl/cytoscape_on_cluster/blob/master/README.md#usage
+# Add the following to ~/.ssh/config
+#Host *
+#    ForwardX11Trusted yes
+#    ForwardX11 yes
+# From: /homes/acaza
+module load openjdk-11.0.1-gcc-9.3.0-unymjzh
+MEM_IN_GB=20
+bsub -q gui -XF -I -R "select[mem>$((MEM_IN_GB*1024))] rusage[mem=$((MEM_IN_GB*1024))]" -M$((MEM_IN_GB*1024)) -o cytoscape_gui_.o -e cytoscape_gui_.e -J cytoscape_gui /hps/nobackup/iqbal/leandro/adrian/cytoscape/cytoscape_installation/cytoscape.sh
+bjobs -w | grep cytoscape_gui | awk '{print $1}' | xargs bkill
+rm cytoscape_gui_.*
+
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.svg .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.svg .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_linlarge.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.png .
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.svg .
+
+#___________________________________#
+
+
+
+#===== Pairwise comparison =====#
+scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.svg .
+
+
+# Easyfig
+# Download from: http://mjsull.github.io/Easyfig/files.html
+# Easyfig_2.2.2_linux.tar.gz
+# Intallation: https://github.com/mjsull/Easyfig/wiki/Installation#linux
+# Installing BLAST: https://github.com/mjsull/Easyfig/wiki/Setting-up-Easyfig-to-automatically-generate-BLAST-files
+#
+# Issues to consider:
+#
+# Comparison files
+# Easyfig did not produce a figure with the blast output from BLAST online, but it did it with the output files from its BLAST comparison
+# The issue seems to be the query and subject sequence names, which Easyfig-triggered-BLAST names ("1.easyfig.fa" & "2.easyfig.fa")
+# These are likely the names the code reads to draw.
+#
+# Input annotated file (e.g. GBK)
+# Easyfig requires input GBK files to draw annotated features
+# For custom annotations (AMR genes identified from abricate), this file can be created in artemis by loading a fasta file and adding the
+# data with the "Read Entry Into" option from an accepted file format (.gff). However, artemis parser is strict. After different trials,
+# the format exemplified by the .gff from "AMR genes to gff" below worked well.
+# The other issue is that Easyfig won't draw the features from the GBK if this doesn't contain the "FEATURES" header block. This was
+# copied from the orginial GBK online and pasted into the GBK file obtained from artemis.
+# Alternatively, the original GBK from NCBI could be downloaded and merged with the custom annotations to avoid this issue.
+
+# AMR genes to gff
+# From: /home/ubuntu/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
+mkdir annotation/ABRICATE/amr/gff
+grep 'PLSDB-NZ_CP018104.1' annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.AMR_genes.tsv | awk -F"\t" '{print $1,"ABRICATE-"$8,"gene",$2,$3,$7,$4,".","gene="$5}' OFS="\t" > annotation/ABRICATE/amr/gff/PLSDB-NZ_CP018104.1-AMR_genes.gff
+grep 'PLSDB-NZ_CP014498.1' annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.AMR_genes.tsv | awk -F"\t" '{print $1,"ABRICATE-"$8,"gene",$2,$3,$7,$4,".","gene="$5}' OFS="\t" > annotation/ABRICATE/amr/gff/PLSDB-NZ_CP014498.1-AMR_genes.gff
+
+# Draw figure
+# The "gff" file was copied from CLIMB to make a GBK file (see "Issues to consider" above)
+# Annotation files:
+# 02. /home/adrian/Downloads/programs/lineage_1/PLSDB-NZ_CP018104.1.gbk
+# 01. /home/adrian/Downloads/programs/lineage_1/pMUR-M131_16.fna
+# Blast files:
+# /home/adrian/Downloads/programs/lineage_1/12.easyfig.out
+# BLAST hits height:
+# Image -> Figure -> Height of Blast hits in figure: 750
+# Scale line:
+# Image -> Figure -> Lenght of scale legend: 50000
+# Invert sequence:
+# Double click "pMUR-M131_16.fna" from annotation files -> Reverse -> Yes
+# Max e-value:
+# Image -> Blast -> Max. e Value: 0.0001
+# Matches colour gradient:
+# Image -> Blast -> Choose colours for minimum and maximum colours (Have to drag the arrows!)
+# Normal = 0, 217, 217 - 0, 139, 139
+# Inverted = 0, 217, 217 - 0, 139, 139
+# Draw small genes:
+# Image -> Blast -> Untick "Filter small blast hits/annotations"
+# Genes colour and label:
+# Image -> Annotation -> Feature labels: Top, Thickness of gene outlines: 0, gene: 171, 9, 8
+# GC graph (Requires exporting a new figure as it's incompatible with gene names on the top):
+# Image -> Annotation -> Graph: GC content, Step size: 100, Window size: 100, Positive value colour: 184, 134, 11, Negative value colour: 134, 11, 184
+
+# The resulting SVG files were edited in inkscape and placed at:
+# /home/adrian/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pairwise_comparisons/lineage_1
+# /home/adrian/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/pairwise_comparisons/lineage_13
+
+#___________________________________#
+
+
+
+# marA-encoding pMUR plasmids - to remove?
+# pMUR-M143_44
+# pMUR-M266_37.M266_38
+# pMUR-M614_30
+# All three (pMUR-M266_37.M266_38) are predicted as plasmids by plasmidverify. See: ~/Plasmids/Murray/Murray_collection/PVERIFY
+# None were circularised
+# No rep or mob types were identified in them
+# All three cover at least 70% of a plasmid based on minimap2. See: ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/PARSEPAF/Post-circlator_contigs-iPlasmidDB_all
+CP055640.1	1941	0.7928902627511591	1	M143_44: 39194
+CP055640.1	1941	1.0	1	M266_37.M266_38: 86799
+CP055640.1	1941	1.0	1	M614_30: 61835
+
+
+
+Hi Leandro.
+These are sequences of the representative plasmids to search in the 661k with COBS but without 'NNNs'. Hopefully it'll work this time :crossed_fingers::skin-tone-3:. Many thanks again!
+
+hey adrian
+5:25
+COBS output of the 367 plasmids against the 661k bacteria is here: /hps/nobackup/iqbal/leandro/adrian/search_661k/cobs_murray_plasmid_representatives_on_661k.o
+Hi Leandro. Quick question, do you mind sharing the code you ran to search the 661k?
+leandro
+  12:18 PM
+is just a single line, script is here: /hps/nobackup/iqbal/leandro/adrian/search_661k/search.sh
+
+
+# Backing CLIMB data up to S3 bucket:
+s3cmd sync /home/ubuntu/P_aeruginosa_database/Illumina-keratitis_genomes-Winstanley/ s3://gram-negative-b-climbbackup/Illumina-keratitis_genomes-Winstanley/
+# Docs:
+https://docs.climb.ac.uk/storage/transfer-from-vm-to-s3/
+https://docs.climb.ac.uk/storage/program-s3-fetch/
