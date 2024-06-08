@@ -1,2 +1,3 @@
-# Pre-antibiotic era plasmids of the Murray collection
-Genome analysis of plasmids from the Murray collection
+# Pre-antibiotic era (PAE) plasmids of the Murray collection
+## Genome analysis of PAE plasmids and their modern relatives 
+from the Murray collection
