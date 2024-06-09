@@ -7,16 +7,17 @@ This document describes the software and commands used to analyse the plasmid se
 
 ### Retrieving Murray sequencing reads
 
-_Software_: enaBrowserTools v1.6
+_Software_: enaBrowserTools v1.6  
 _Command_:  
-  enaGroupGet -f fastq -d Illumina/ACCESSION ${acc}
-
+```enaGroupGet -f fastq -d Illumina/ACCESSION
+```
 
 ### Genome Assembly
 
-_Software_: unicycler v0.4.7
-_Command_:
-  unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
+_Software_: unicycler v0.4.7  
+_Command_:  
+```unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
+```
 
 
 #===== Assembly metrics =====#
