@@ -1,14 +1,14 @@
 # Analysis of PAE plasmids and their modern relatives
 
 This document describes the software and commands used to analyse the plasmid sequences reported in our study.  
-
+  
   
 ## Murray plasmids
 
 ### Retrieving Murray sequencing reads
 
 _Software_: enaBrowserTools v1.6
-_Command_:
+_Command_:  
   enaGroupGet -f fastq -d Illumina/ACCESSION ${acc}
 
 
