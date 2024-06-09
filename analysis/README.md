@@ -1,40 +1,44 @@
 # Analysis of PAE plasmids and their modern relatives
 
 This document describes the software and commands used to analyse the plasmid sequences reported in our study.  
-  
-  
+
+
 ## Murray plasmids
+
 
 ### Retrieving Murray sequencing reads
 
 _Software_: enaBrowserTools v1.6  
 _Command_:  
 ```
-enaGroupGet -f fastq -d Illumina/ACCESSION
+enaGroupGet -f fastq -d OUTPUT_DIR/ ACCESSION
 ```
+
 
 ### Genome Assembly
 
 _Software_: unicycler v0.4.7  
 _Command_:  
 ```
-unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
+unicycler -1 READS_1.fastq.gz -2 READS_2.fastq.gz -o OUTPUT_DIR
 ```
 
+### Assembly metrics
 
-#===== Assembly metrics =====#
+_Software_: quast v4.5  
+_Command_:  
+```
+quast -o OUTPUT_DIR/ UNICYCLER/ASSEMBLY.fasta
+```
 
-# Software: quast v4.5
-# Command:
-quast -o QUAST/ UNICYCLER/*/assembly.fasta &
+### Taxonomic classification
 
-
-#===== Taxonomic classification =====#
-
-# Software: kraken2 v2.1.2 & bracken v2.5
-# Commands:
-# kraken
+_Software_: kraken2 v2.1.2 & bracken v2.5  
+_Commands_:  
+___kraken___
+```
 kraken2 --use-names --threads 8 --db k2_standard_8gb_20210517 --fastq-input --report M266_test.report-reads.txt --gzip-compressed --paired ../Murray_genomes/Illumina/Reads/M266-ERS222761/ERR316957_1.fastq.gz  ../Murray_genomes/Illumina/Reads/M266-ERS222761/ERR316957_2.fastq.gz --output ../Murray_genomes/Illumina/sandbox/KrakenBracken_Reads/M266_test-reads.kraken
+```
 # bracken
 bracken -d k2_standard_8gb_20210517 -i M266_test.report-reads.txt -o M266_reads_bracken -l S
 
