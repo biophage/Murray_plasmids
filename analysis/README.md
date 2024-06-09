@@ -1,23 +1,21 @@
 # Analysis of PAE plasmids and their modern relatives
 
-This document describes the software and commands used to analyse the plasmid sequences reported in our study.
-
+This document describes the software and commands used to analyse the plasmid sequences reported in our study.  
 
 ## Murray plasmids
 
-
 ### Retrieving Murray sequencing reads
 
-__Software__: enaBrowserTools v1.6
-___Command___:
-enaGroupGet -f fastq -d Illumina/ ${acc}
+_Software_: enaBrowserTools v1.6
+_Command_:
+  enaGroupGet -f fastq -d Illumina/ACCESSION ${acc}
 
 
 ### Genome Assembly
 
-# Software: unicycler v0.4.7
-# Command:
-unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
+_Software_: unicycler v0.4.7
+_Command_:
+  unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
 
 
 #===== Assembly metrics =====#
