@@ -1,7 +1,13 @@
-#===== Retrieving Murray sequencing reads  =====#
+# Analysis of PAE plasmids and their modern relatives
 
-# Software: enaBrowserTools v1.6
-# Command:
+This document describes the software and commands used to analyse the plasmid sequences reported in our study.
+
+## Murray plasmids
+
+### Retrieving Murray sequencing reads  =====#
+
+__Software__: enaBrowserTools v1.6
+___Command___:
 enaGroupGet -f fastq -d Illumina/ ${acc}
 
 
