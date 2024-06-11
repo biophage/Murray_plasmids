@@ -1,6 +1,6 @@
 # Analysis of PAE plasmids and their modern relatives
 
-This document describes the software and commands used to analyse the plasmid sequences reported in our study.  
+This document describes the software and commands used to analyse the plasmid sequences reported in our study. Further details on the rational and different steps of the analysis can be found in the methods section of our manuscript.  
 
 
 ## Murray plasmids
@@ -99,7 +99,7 @@ ___cd-hit-est___
 ```
 cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
 ```
-The above are examples of concatenating & clustering the AMR databases; the same was done for the virulence databases VFDB and Ecoli_VF.
+_The above are examples of concatenating & clustering the AMR databases; the same was done for the virulence databases VFDB and Ecoli_VF._
 
 ### AMR/Virulence genes identification
 _Software_: abricate v1.0.1  
@@ -107,106 +107,74 @@ _Command_:
 ```
 abricate -db cd-hit_res --minid 80 --mincov 80 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > abricate/amr/OUTPUT_REPORT.80cov-cd-hit_res.tsv
 ```
+_The above is an example of searching for AMR genes. A similar command was used to search for virulence factors using the relevant database._
 
 ### Plasmid annotation
 _Software_: prokka v1.14.6
 _Command_:
 ```
-prokka --outdir prokka/OUTPUT_DIR --prefix ${bname} --locustag ${bname} --plasmid ${bname} --kingdom Bacteria --gcode 11 --cpus 8 sequences/FNA/individual_files/${l}
+prokka --outdir prokka/OUTPUT_DIR --prefix PLASMID_NAME --locustag PLASMID_NAME --plasmid PLASMID_NAME --kingdom Bacteria --gcode 11 --cpus 8 PLASMID_SEQ.fna
+```
+
+### Integrons detection
+_Software_: Integron finder v2.0.1  
+_Command_:  
+```
+integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir integron_finder/OUTPUT_DIR PLASMID_SEQ.fna
 ```
 
 
-#===== Integrons detection =====#
-# Software: Integron finder v2.0.1
-# Command:
-integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/output_files ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna
+## Identification of Murray plasmid relatives
+
+### Genome distance estimation
+_Software_: mash v2.3  
+_Commands_:  
+___Make sequence sketches___  
+```
+mash sketch -k 14 -p 8 -o mash/sketches/OUTPUT_FILE PLASMID_SEQS.fna
+```
+_Mash sketches were created for both the Murray and iPlasmidDB plasmid nucleotide sequences._  
+  
+___Estimate distance between sketches___  
+```
+mash dist -p 8 -d 0.05 mash/sketches/iPlasmidDB.msh MURRAY_PLASMID_SEQ.fna > mash/dist/OUTPUT_FILE.txt
+```
+
+### Nucleotide sequence similarity - BLAST
+_Software_: BLAST v2.10.1+  
+_Commands_:  
+___Make a nucleotide blast database___
+```
+makeblastdb -dbtype nucl -in iPlasmidDB.fna -out blastndb/iPlasmidDB
+```
+___Search for homologous sequences in the BLAST database___  
+```
+blastn -query MURRAY_PLASMID_SEQ.fna -db blastndb/iPlasmidDB -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' > blastn/OUTPUT_FILE.txt
+```
+_To retrieve all matches, as we did to identify all plasmids from iPlasmidDB related to Murray plasmid sequences, remove the part of the code filtering out matches with query coverage below 70% (`| awk -F"\t" '{if ($NF >= 70) {print $0}}'`)._
 
 
-#===== Genome distance estimation =====#
-# Software: mash v2.3
-# Command:
-# Make sequence sketches
-mash sketch -k 14 -p 8 -o MASH/sketches/${fname} ${l}
-# Estimate distance between sketches
-mash dist -p 8 -d 0.05 ~/Plasmids/Murray/iPlasmidDB/v1.1/mash/sketches/iPlasmidDB-genbank.msh ${l} > MASH/vs_iPlasmidDBv1.1/output_files/${fname}.out.txt
+## Network clustering and comparative analysis
 
+### All-vs-all mash distance estimation
+_Software_: mash v2.3  
+_Commands_:  
+___Combine Murray and iPlasmidDB plasmid sketches into a single file___
+```
+find mash/sketches/ -name *msh  > input_msh_files.txt
+```
+```
+mash paste mash/sketches/Murray-iPlasmidDB_plasmids -l input_msh_files.txt
+```
+___Calculate all-vs-all mash distance___
+```
+mash dist -p 8 -d 0.05 mash/sketches/Murray-iPlasmidDB_plasmids.msh -l input_msh_files.txt > mash_network/dist/Murray-iPlasmidDB_plasmids-dist_210shashes.tsv
+```
+_The above output file was used as input to create the plasmids network in Cytoscape_
 
-#===== BLAST comparison =====#
-# Software: BLAST v2.10.1+
-# Command:
-# Make a nucleotide blast database
-makeblastdb -dbtype nucl -in tmp -out blast/blastndb/iPlasmidDB-genbank
-# Search for homologous sequences in the BLAST database
-blastn -query FNAs/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/${fname}.out.txt;
-
-
-cd /home/linuxbrew/.linuxbrew/Cellar/abricate/1.0.1/libexec/db/
-mkdir cd-hit_res
-cat card/sequences ncbi/sequences argannot/sequences resfinder/sequences > cd-hit_res/sequences-all
-cd cd-hit_res
-cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
-rm sequences-all
-mv sequences.clstr ../abricate/sequences-amr.clstr
-makeblastdb -in sequences -title cd-hit_res -dbtype nucl -hash_index
-
-
-
-
-
-#===== Update Murray-iPlasmidDB plasmid (n=9977) master table =====#
-# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
-
-## Clustering
-perl -pe 's{",}{\t}g; s {,"}{\t}g; s{"}{}g; s{\t\t}{\t0\t}' clustering/MASH-CLUSTERMAKER/mcl_clusters-400shashes_threshold.csv | awk -F"\t" '{ if (NR != 1) {print $11,$1,$2}}' OFS="\t" | sort -k1,1 > clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
-sed -i '1s/^/ID\tCluster\tLineage\n/' clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-
-## Number of CDS (prokka)
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-cds_count.txt > tmp_join
-sed -i '1s/^/ID\tCDS_prokka\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Transposases and integrases
-sort -k1,1 annotation/PROKKA_products/transposases_and_integrases_per_plasmid.txt > tmp_join
-sed -i '1s/^/ID\tTransposases\tIntegrases\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## BioSample accession
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-biosample_acc.txt > tmp_join
-sed -i '1s/^/ID\tBioSample\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-
-## Host and date of isolation
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-host_year.txt > tmp_join
-sed -i '1s/^/ID\tsuperkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tCollection_date\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Integrons (Integron_finder)
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-integrons.txt > tmp_join
-sed -i '1s/^/ID\tCALIN\tcomplete\tIn0\ttopology\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Master table fields list
-head -n1 Murray-iPlasmidDB_plasmids_master_table.txt | perl -pe 's{\t}{\n}g' | nl -w 1 > Murray-iPlasmidDB_plasmids_master_table-fields.txt
-
-#___________________________________#
-
+### Pangenome analysis
+_Software_:   
+_Commands_:  
 
 
 #===== Network manipulation in codon =====#
