@@ -173,38 +173,15 @@ mash dist -p 8 -d 0.05 mash/sketches/Murray-iPlasmidDB_plasmids.msh -l input_msh
 _The above output file was used as input to create the plasmids network in Cytoscape_
 
 ### Pangenome analysis
-_Software_:   
-_Commands_:  
+_Software_: Panaroo v1.2.9  
+_Command_:  
+```
+panaroo -i input_files/*_prokka.gff -o panaroo/OUTPUT_DIR --threshold 0.7 --len_dif_percent 0.7 -t 8 --clean-mode sensitive --remove-invalid-genes --no_clean_edges
+```
 
-
-#===== Network manipulation in codon =====#
-
-# Transfer files to codon
-# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
-scp Murray-iPlasmidDB_plasmids-dist_210shashes_figs.cys codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
-
-# Launching cytosacpe
-# Read for details: https://github.com/leoisl/cytoscape_on_cluster/blob/master/README.md#usage
-# Add the following to ~/.ssh/config
-#Host *
-#    ForwardX11Trusted yes
-#    ForwardX11 yes
-# From: /homes/acaza
-module load openjdk-11.0.1-gcc-9.3.0-unymjzh
-MEM_IN_GB=20
-bsub -q gui -XF -I -R "select[mem>$((MEM_IN_GB*1024))] rusage[mem=$((MEM_IN_GB*1024))]" -M$((MEM_IN_GB*1024)) -o cytoscape_gui_.o -e cytoscape_gui_.e -J cytoscape_gui /hps/nobackup/iqbal/leandro/adrian/cytoscape/cytoscape_installation/cytoscape.sh
-bjobs -w | grep cytoscape_gui | awk '{print $1}' | xargs bkill
-rm cytoscape_gui_.*
-
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_linlarge.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.svg .
-
-#___________________________________#
+### Pairwise comparisons
+_Software_: Clinker v0.0.28  
+_Command_:  
+```
+clinker input_files/*_prokka.gbk -p clinker/OUTPUT.html
+```
