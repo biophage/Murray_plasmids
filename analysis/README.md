@@ -110,7 +110,7 @@ abricate -db cd-hit_res --minid 80 --mincov 80 --quiet --nopath --threads 8 --fo
 _The above is an example of searching for AMR genes. A similar command was used to search for virulence factors using the relevant database._
 
 ### Plasmid annotation
-_Software_: prokka v1.14.6
+_Software_: prokka v1.14.6  
 _Command_:
 ```
 prokka --outdir prokka/OUTPUT_DIR --prefix PLASMID_NAME --locustag PLASMID_NAME --plasmid PLASMID_NAME --kingdom Bacteria --gcode 11 --cpus 8 PLASMID_SEQ.fna
