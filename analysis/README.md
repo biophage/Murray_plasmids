@@ -1,217 +1,187 @@
-#===== Retrieving Murray sequencing reads  =====#
+# Analysis of PAE plasmids and their modern relatives
 
-# Software: enaBrowserTools v1.6
-# Command:
-enaGroupGet -f fastq -d Illumina/ ${acc}
+This document describes the software and commands used to analyse the plasmid sequences reported in our study. Further details on the rational and different steps of the analysis can be found in the methods section of our manuscript.  
 
 
-#===== Genome Assembly =====#
+## Murray plasmids
 
-# Software: unicycler v0.4.7
-# Command:
-unicycler -1 ${d}/*_1.fastq.gz -2 ${d}/*_2.fastq.gz -o /home/ubuntu/Plasmids/Murray/Murray_collection/UNICYCLER/${d}
+### Retrieving Murray sequencing reads
+
+_Software_: enaBrowserTools v1.6  
+_Command_:  
+```
+enaGroupGet -f fastq -d OUTPUT_DIR/ ACCESSION
+```
+
+### Genome Assembly
+
+_Software_: unicycler v0.4.7  
+_Command_:  
+```
+unicycler -1 READS_1.fastq.gz -2 READS_2.fastq.gz -o OUTPUT_DIR
+```
+
+### Assembly metrics
+
+_Software_: quast v4.5  
+_Command_:  
+```
+quast -o OUTPUT_DIR/ unicycler/ASSEMBLY.fasta
+```
+
+### Taxonomic classification
+
+_Software_: kraken2 v2.1.2 & bracken v2.5  
+_Commands_:  
+___kraken___
+```
+kraken2 --use-names --threads 8 --db k2_standard_8gb_20210517 --fastq-input --report OUTPUT.REPORT-reads.txt --gzip-compressed --paired READS_1.fastq.gz  READS_2.fastq.gz --output OUTPUT-reads.kraken
+```
+___bracken___
+```
+bracken -d k2_standard_8gb_20210517 -i OUTPUT.REPORT-reads.txt -o OUTPUT-reads.bracken -l S
+```
+
+### Chromosomal contigs depletion
+_Software_: plasmidverify.py  
+_Command_:  
+```
+python2.7 ~/plasmidVerify/plasmidverify.py -f unicycler/ASSEMBLY.fasta -o PVERIFY/OUTPUT_DIR --hmm ~/Pfam-HMM/Pfam-A.hmm.gz -t 8
+```
+
+### Circularisation of plasmid sequences
+_Software_: circlator v1.5.5  
+_Command_:  
+```
+circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-unicycler_noncircularised.fasta interleaved_reads.fastq circlator/OUTPUT_DIR
+```
+
+### Typing
+_Software_: abricate v1.0.1, mob_suite v3.0.1  
+_Commands_:  
+___abricate - plasmidfinder___
+```
+abricate -db plasmidfinder --minid 80 --mincov 60 --quiet --nopath --threads 8 Post-circlator/PLASMID_SEQUENCES.fna > PLASMIDFINDER/Post-circlator_seqs-plasmidfinder_80id_60cov.txt
+```
+___mob_typer___
+```
+mob_typer --infile Post-circlator/PLASMID_SEQUENCES.fna --out_file mob_typer/OUTPUT_report.txt --num_threads 8 --multi
+```
+
+### Plasmid identification 
+_Software_: dedupe (BBTools package v38.90), minimap2 v2.17-r941, mob_suite v3.0.1  
+_Commands_:  
+___mapping against known plasmids___  
+- Deduplicate reference database
+```
+bash ~/bbmap/dedupe.sh in=iPlasmidDB-core_all.fna threads=8 sort=id out=dedupe_out.fasta ac=f outd=duplicates.fasta
+```
+- Sequences mapping  
+```
+minimap2 -x asm5 -t 8 -c dedupe/dedupe_out.fasta PLASMID_SEQUENCES.fna -o minimap2/OUTPUT.paf
+```
+___mob_recon___  
+```
+mob_recon --infile Post-circlator/PLASMID_SEQUENCES.fna --outdir mob_recon/OUTPUT_DIR -t -u -c -n 8
+```
 
 
-#===== Assembly metrics =====#
+## Plasmids sequence characterisation
 
-# Software: quast v4.5
-# Command:
-quast -o QUAST/ UNICYCLER/*/assembly.fasta &
-
-
-#===== Taxonomic classification =====#
-
-# Software: kraken2 v2.1.2 & bracken v2.5
-# Commands:
-# kraken
-kraken2 --use-names --threads 8 --db k2_standard_8gb_20210517 --fastq-input --report M266_test.report-reads.txt --gzip-compressed --paired ../Murray_genomes/Illumina/Reads/M266-ERS222761/ERR316957_1.fastq.gz  ../Murray_genomes/Illumina/Reads/M266-ERS222761/ERR316957_2.fastq.gz --output ../Murray_genomes/Illumina/sandbox/KrakenBracken_Reads/M266_test-reads.kraken
-# bracken
-bracken -d k2_standard_8gb_20210517 -i M266_test.report-reads.txt -o M266_reads_bracken -l S
-
-
-#===== Chromosomal contigs depletion =====#
-# Software: plasmidverify.py
-# Command:
-python2.7 ~/plasmidVerify/plasmidverify.py -f ${d}/assembly.fasta -o ~/Plasmids/Murray/Murray_collection/PVERIFY/${d} --hmm ~/Pfam-HMM/Pfam-A.hmm.gz -t 8
-
-
-#===== Contigs circularisation =====#
-# Software: circlator v1.5.5
-# Command:
-circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-noncir_uni.fasta /data/${d}_reads.fastq /data/circlator_out
-
-
-#===== Contigs mapping =====#
-# Software: minimap2 v2.17-r941
-# Command:
-minimap2 -x asm5 -t 8 -c ~/Plasmids/Murray/iPlasmidDB/v1/sequences/FNA/individual_files-nr/DEDUPE/dedupe_out.fasta ${d}/*.fna -o ~/Plasmids/Murray/Murray_collection/Predicted_plasmids/PVERIFY/MINIMAP2/Post-circlator_contigs-iPlasmidDB_all/${d}.paf
-
-
-#===== Plasmids typing =====#
-# Software: abricate v1.0.1, mob_suite v3.0.1,
-# Command:
-# abricate - plasmidfinder
-abricate -db plasmidfinder --minid 80 --mincov 60 --quiet --nopath --threads 8 Post-circlator_contigs/*/*fna > PLASMIDFINDER/Post-circlator_contigs-plasmidfinder_80id_60cov.txt &
-# mob_recon
-mob_recon --infile /mnt/${d}/${d}_post-*.fna --outdir /mnt/${d}/mob_recon_output -t -u -c -n 8
-# mob_typer
-mob_typer --infile ${f}.fna --out_file ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/MOB_TYPER/tmp_reports/${f}.txt --num_threads 8 --multi
-
-
-#===== Sequence deduplication =====#
-# Software: Dedupe (BBTools package v38.90)
-# Command:
-bash ~/bbmap/dedupe.sh in=iPlasmidDB-core_all.fna threads=8 sort=id out=dedupe_out.fasta ac=f outd=duplicates.fasta &
-
-
-#===== Plasmids NCBI metadata =====#
-# Software: plasmid_querier
-# Command:
-Ask LEANDRO
-
-
-#===== AMR/Virulence databases clustering =====#
-# Software: CD-HIT v4.8.1
-# Command:
-# Concatenate databases
+### AMR/Virulence databases clustering
+_Software_: CD-HIT v4.8.1  
+_Commands_:  
+___Concatenate databases___
+```
 cat card/sequences ncbi/sequences argannot/sequences resfinder/sequences > cd-hit_res/sequences-all
-# cd-hit-est
+```
+___cd-hit-est___  
+```
 cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
+```
+_The above are examples of concatenating & clustering the AMR databases; the same was done for the virulence databases VFDB and Ecoli_VF._
+
+### AMR/Virulence genes identification
+_Software_: abricate v1.0.1  
+_Command_:  
+```
+abricate -db cd-hit_res --minid 80 --mincov 80 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > abricate/amr/OUTPUT_REPORT.80cov-cd-hit_res.tsv
+```
+_The above is an example of searching for AMR genes. A similar command was used to search for virulence factors using the relevant database._
+
+### Plasmid annotation
+_Software_: prokka v1.14.6  
+_Command_:
+```
+prokka --outdir prokka/OUTPUT_DIR --prefix PLASMID_NAME --locustag PLASMID_NAME --plasmid PLASMID_NAME --kingdom Bacteria --gcode 11 --cpus 8 PLASMID_SEQ.fna
+```
+
+### Integrons detection
+_Software_: Integron finder v2.0.1  
+_Command_:  
+```
+integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir integron_finder/OUTPUT_DIR PLASMID_SEQ.fna
+```
 
 
-#===== AMR/Virulence genes identification =====#
-# Software: abricate v1.0.1
-# Command:
-abricate -db cd-hit_res --minid 80 --mincov 80 --quiet --nopath --threads 8 --fofn sequences/input_fna_files.txt > annotation/ABRICATE/amr/Murray-iPlasmidDB_plasmids.80cov-cd-hit_res.tsv &
+## Identification of Murray plasmid relatives
+
+### Genome distance estimation
+_Software_: mash v2.3  
+_Commands_:  
+___Make sequence sketches___  
+```
+mash sketch -k 14 -p 8 -o mash/sketches/OUTPUT_FILE PLASMID_SEQS.fna
+```
+_Mash sketches were created for both the Murray and iPlasmidDB plasmid nucleotide sequences._  
+  
+___Estimate distance between sketches___  
+```
+mash dist -p 8 -d 0.05 mash/sketches/iPlasmidDB.msh MURRAY_PLASMID_SEQ.fna > mash/dist/OUTPUT_FILE.txt
+```
+
+### Nucleotide sequence similarity - BLAST
+_Software_: BLAST v2.10.1+  
+_Commands_:  
+___Make a nucleotide blast database___
+```
+makeblastdb -dbtype nucl -in iPlasmidDB.fna -out blastndb/iPlasmidDB
+```
+___Search for homologous sequences in the BLAST database___  
+```
+blastn -query MURRAY_PLASMID_SEQ.fna -db blastndb/iPlasmidDB -evalue 1e-05 -num_threads 8 -subject_besthit -outfmt "6 qseqid qlen sseqid slen length pident qstart qend sstart send evalue bitscore qcovhsp qcovs" | awk -F"\t" '{if ($NF >= 70) {print $0}}' > blastn/OUTPUT_FILE.txt
+```
+_To retrieve all matches, as we did to identify all plasmids from iPlasmidDB related to Murray plasmid sequences, remove the part of the code filtering out matches with query coverage below 70% (`| awk -F"\t" '{if ($NF >= 70) {print $0}}'`)._
 
 
-#===== Plasmid annotation =====#
-# Software: prokka v1.14.6
-# Command:
-prokka --outdir annotation/PROKKA/${bname} --prefix ${bname} --locustag ${bname} --plasmid ${bname} --kingdom Bacteria --gcode 11 --cpus 8 sequences/FNA/individual_files/${l}
+## Network clustering and comparative analysis
 
+### All-vs-all mash distance estimation
+_Software_: mash v2.3  
+_Commands_:  
+___Combine Murray and iPlasmidDB plasmid sketches into a single file___
+```
+find mash/sketches/ -name *msh  > input_msh_files.txt
+```
+```
+mash paste mash/sketches/Murray-iPlasmidDB_plasmids -l input_msh_files.txt
+```
+___Calculate all-vs-all mash distance___
+```
+mash dist -p 8 -d 0.05 mash/sketches/Murray-iPlasmidDB_plasmids.msh -l input_msh_files.txt > mash_network/dist/Murray-iPlasmidDB_plasmids-dist_210shashes.tsv
+```
+_The above output file was used as input to create the plasmids network in Cytoscape_
 
-#===== Integrons detection =====#
-# Software: Integron finder v2.0.1
-# Command:
-integron_finder --local-max --func-annot --promoter-attI --circ --cpu 8 --outdir ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/annotation/INTEGRON_FINDER/output_files ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/sequences/FNAs/${l}.fna
+### Pangenome analysis
+_Software_: Panaroo v1.2.9  
+_Command_:  
+```
+panaroo -i input_files/*_prokka.gff -o panaroo/OUTPUT_DIR --threshold 0.7 --len_dif_percent 0.7 -t 8 --clean-mode sensitive --remove-invalid-genes --no_clean_edges
+```
 
-
-#===== Genome distance estimation =====#
-# Software: mash v2.3
-# Command:
-# Make sequence sketches
-mash sketch -k 14 -p 8 -o MASH/sketches/${fname} ${l}
-# Estimate distance between sketches
-mash dist -p 8 -d 0.05 ~/Plasmids/Murray/iPlasmidDB/v1.1/mash/sketches/iPlasmidDB-genbank.msh ${l} > MASH/vs_iPlasmidDBv1.1/output_files/${fname}.out.txt
-
-
-#===== BLAST comparison =====#
-# Software: BLAST v2.10.1+
-# Command:
-# Make a nucleotide blast database
-makeblastdb -dbtype nucl -in tmp -out blast/blastndb/iPlasmidDB-genbank
-# Search for homologous sequences in the BLAST database
-blastn -query FNAs/${l} -db ~/Plasmids/Murray/iPlasmidDB/v1.1/blast/blastndb/iPlasmidDB-genbank -evalue 1e-05 -num_threads 8 -subject_besthit > BLAST/vs_iPlasmidDBv1.1/BLASTN/output_files/${fname}.out.txt;
-
-
-cd /home/linuxbrew/.linuxbrew/Cellar/abricate/1.0.1/libexec/db/
-mkdir cd-hit_res
-cat card/sequences ncbi/sequences argannot/sequences resfinder/sequences > cd-hit_res/sequences-all
-cd cd-hit_res
-cd-hit-est -i sequences-all -o sequences -c 1.00 -n 10 -T 8 -s 0.9 -sc 1
-rm sequences-all
-mv sequences.clstr ../abricate/sequences-amr.clstr
-makeblastdb -in sequences -title cd-hit_res -dbtype nucl -hash_index
-
-
-
-
-
-#===== Update Murray-iPlasmidDB plasmid (n=9977) master table =====#
-# From: ~/Plasmids/Murray/Murray_collection/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1
-
-## Clustering
-perl -pe 's{",}{\t}g; s {,"}{\t}g; s{"}{}g; s{\t\t}{\t0\t}' clustering/MASH-CLUSTERMAKER/mcl_clusters-400shashes_threshold.csv | awk -F"\t" '{ if (NR != 1) {print $11,$1,$2}}' OFS="\t" | sort -k1,1 > clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
-sed -i '1s/^/ID\tCluster\tLineage\n/' clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header clustering/MASH-CLUSTERMAKER/plasmids_cluster_and_lineage.tsv Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-
-## Number of CDS (prokka)
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-cds_count.txt > tmp_join
-sed -i '1s/^/ID\tCDS_prokka\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Transposases and integrases
-sort -k1,1 annotation/PROKKA_products/transposases_and_integrases_per_plasmid.txt > tmp_join
-sed -i '1s/^/ID\tTransposases\tIntegrases\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## BioSample accession
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-biosample_acc.txt > tmp_join
-sed -i '1s/^/ID\tBioSample\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-
-## Host and date of isolation
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-host_year.txt > tmp_join
-sed -i '1s/^/ID\tsuperkingdom\tphylum\tclass\torder\tfamily\tgenus\tspecies\tCollection_date\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header tmp_join Murray-iPlasmidDB_plasmids_master_table.txt > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Integrons (Integron_finder)
-sort -k1,1 metadata/Murray-iPlasmidDB_plasmids-integrons.txt > tmp_join
-sed -i '1s/^/ID\tCALIN\tcomplete\tIn0\ttopology\n/' tmp_join
-# Check all lines have the same number of fields in the joined file
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join | awk -F"\t" '{print NF}' | sort -u
-join -t $'\t' --header Murray-iPlasmidDB_plasmids_master_table.txt tmp_join > tmp_joined; mv tmp_joined Murray-iPlasmidDB_plasmids_master_table.txt
-rm tmp_join
-
-## Master table fields list
-head -n1 Murray-iPlasmidDB_plasmids_master_table.txt | perl -pe 's{\t}{\n}g' | nl -w 1 > Murray-iPlasmidDB_plasmids_master_table-fields.txt
-
-#___________________________________#
-
-
-
-#===== Network manipulation in codon =====#
-
-# Transfer files to codon
-# From: ~/Dropbox/ESPOD_fell/03_Project/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
-scp Murray-iPlasmidDB_plasmids-dist_210shashes_figs.cys codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network
-
-# Launching cytosacpe
-# Read for details: https://github.com/leoisl/cytoscape_on_cluster/blob/master/README.md#usage
-# Add the following to ~/.ssh/config
-#Host *
-#    ForwardX11Trusted yes
-#    ForwardX11 yes
-# From: /homes/acaza
-module load openjdk-11.0.1-gcc-9.3.0-unymjzh
-MEM_IN_GB=20
-bsub -q gui -XF -I -R "select[mem>$((MEM_IN_GB*1024))] rusage[mem=$((MEM_IN_GB*1024))]" -M$((MEM_IN_GB*1024)) -o cytoscape_gui_.o -e cytoscape_gui_.e -J cytoscape_gui /hps/nobackup/iqbal/leandro/adrian/cytoscape/cytoscape_installation/cytoscape.sh
-bjobs -w | grep cytoscape_gui | awk '{print $1}' | xargs bkill
-rm cytoscape_gui_.*
-
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_mobility.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_AMR.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.svg .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_linlarge.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_lin.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.png .
-scp codon:/nfs/research/zi/acaza/projects/Murray_collection/Plasmid_identification/Illumina_sequencing/Identified_plasmids/Post-PVERIFY/comparison/vs_iPlasmidDBv1.1/mash_network/Murray-iPlasmidDB_plasmids-network_PAE.svg .
-
-#___________________________________#
+### Pairwise comparisons
+_Software_: Clinker v0.0.28  
+_Command_:  
+```
+clinker input_files/*_prokka.gbk -p clinker/OUTPUT.html
+```
