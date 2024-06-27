@@ -2,6 +2,25 @@
 
 This document describes the software and commands used to analyse the plasmid sequences reported in our study. Further details on the rational and different steps of the analysis can be found in the methods section of our manuscript.  
 
+> ___Software list___:
+> * enaBrowserTools: https://github.com/enasequence/enaBrowserTools
+> * unicycler: https://github.com/rrwick/Unicycler
+> * quast:
+> * kraken2:
+> * bracken:
+> * plasmidverify:
+> * circlator:
+> * abricate:
+> * mob_suite:
+> * dedupe:
+> * minimap2:
+> * CD-HIT:
+> * prokka:
+> * Integron finder:
+> * mash:
+> * BLAST:
+> * Panaroo:
+> * Clinker:
 
 ## Murray plasmids
 
