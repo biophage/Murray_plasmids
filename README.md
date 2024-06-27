@@ -10,4 +10,4 @@ Cazares, A. _et al._ "Pre and Post antibiotic epoch: insights into the historica
 - R code and files used for the statistical analyses can be found in [statistical_analyses](https://github.com/biophage/Murray_plasmids/tree/master/statistical_analyses).
 - R code used for plotting and visualisation is available in [plots_and_visualisation](https://github.com/biophage/Murray_plasmids/tree/master/plots_and_visualisation).
 
-_A long-term compressed version of this repository, along with the assembled sequences of Murray plasmids and large network files, has been deposited in a Zenodo archive_ (https://doi.org/10.5281/zenodo.12078071).
+_A long-term compressed version of this repository, along with the assembled Murray plasmid sequences and large network files, has been deposited in a Zenodo archive_ (https://doi.org/10.5281/zenodo.12078071).
