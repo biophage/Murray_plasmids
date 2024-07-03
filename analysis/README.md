@@ -5,22 +5,22 @@ This document describes the software and commands used to analyse the plasmid se
 > ___Software list___:
 > * enaBrowserTools: https://github.com/enasequence/enaBrowserTools
 > * unicycler: https://github.com/rrwick/Unicycler
-> * quast:
-> * kraken2:
-> * bracken:
-> * plasmidverify:
-> * circlator:
-> * abricate:
-> * mob_suite:
-> * dedupe:
-> * minimap2:
-> * CD-HIT:
-> * prokka:
-> * Integron finder:
-> * mash:
-> * BLAST:
-> * Panaroo:
-> * Clinker:
+> * quast: https://github.com/ablab/quast
+> * kraken2: https://github.com/DerrickWood/kraken2
+> * bracken: https://github.com/jenniferlu717/Bracken
+> * plasmidverify: https://github.com/ablab/plasmidVerify
+> * circlator: https://github.com/sanger-pathogens/circlator
+> * abricate: https://github.com/tseemann/abricate
+> * mob_suite: https://github.com/phac-nml/mob-suite
+> * dedupe: https://jgi.doe.gov/data-and-tools/software-tools/bbtools/bb-tools-user-guide/dedupe-guide/
+> * minimap2: https://github.com/lh3/minimap2
+> * CD-HIT: https://sites.google.com/view/cd-hit
+> * prokka: https://github.com/tseemann/prokka
+> * Integron finder: https://github.com/gem-pasteur/Integron_Finder
+> * mash: https://github.com/marbl/Mash
+> * BLAST: https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html
+> * Panaroo: https://github.com/gtonkinhill/panaroo
+> * Clinker: https://github.com/gamcil/clinker
 
 ## Murray plasmids
 
