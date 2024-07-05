@@ -1,4 +1,4 @@
-## Statistical analyses
+# Statistical analyses
 
 This directory contains the code used for the statistical analyses presented in our study.
 
