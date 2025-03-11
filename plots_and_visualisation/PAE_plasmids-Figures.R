@@ -1,34 +1,3 @@
-### This file describes the R code used to produce main and supplementary figures for the paper "Pre and Post antibiotic epoch: insights into the historical spread of antimicrobial resistance"
-
-# Figures list
-
-# Main
-# Fig. 3. Mobility, AMR gene carriage and size distribution across plasmid CFs.
-# Fig. 4. Evolution of PAE plasmids that have maintained a clonal frame.
-
-# Supplementary
-# Fig. S1. Plasmids identified in genomes of the Murray collection.
-# Fig. S2. Characteristics of PAE plasmids and their Modern relatives.
-# Fig. S3. CFs' pangenomes.
-# Fig. S5. Murray plasmids containment within Modern-CF plasmids.
-# Fig. S6. Replicons identified in PAE plasmids and their modern close relatives.
-# Fig. S8. Contribution of PAE-related plasmids to AMR.
-# Fig. S9.  Distribution of plasmid mobility types across CFs.
-# Fig. S10. Differences between PAE and Modern plasmids' average size within mixed CFs.
-# Fig. S11. Relationship of Murray plasmids to all sequences from the integrated database.
-# Fig. S12. Comparison of characteristics between plasmids related and unrelated to Murray plasmids.
-# Fig. S14. Examples of putative Murray plasmid sequences identified as contained in bacterial chromosomes. <- Data from BLASTn online.
-
-# The remaining figures from the paper, listed below, were not produced using R
-# Fig. 1. Framework for the analysis of PAE plasmids and their modern relatives. <- Made with BioRender
-# Fig. 2. Diversity of PAE and related modern plasmids and their contribution to AMR. <- Networks made with Cytoscape, integrated in Inkscape
-# Fig. 5. Landscape of known plasmids and their links to Murray plasmids and AMR. <- Networks made with Cytoscape, integrated in Inkscape
-# Fig. S4. Distribution of plasmids in close families (CFs). <- Made with BioRender
-# Fig. S7. Pairwise comparisons between PAE plasmids and their modern relatives. <- Maps made with Easyfig
-# Fig. S13. Characterisation and classification of plasmid sequences from Murray genomes. <- Made in BioRender
-
-
-
 ### Make output directories
 dir.create("Figures/Main", recursive = T)
 dir.create("Figures/Supplementary")
