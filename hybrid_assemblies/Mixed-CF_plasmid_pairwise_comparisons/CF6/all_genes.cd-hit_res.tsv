@@ -1,0 +1,9 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	DGIJEAPJ_00052	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	DGIJEAPJ_00053	2	1200	+	(Tet)tetA	77-1275/1275	===============	0/0	94.04	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	DGIJEAPJ_00056	1	861	+	blaTEM-1C_1	1-861/861	===============	0/0	100.00	100.00	resfinder	FJ560503	blaTEM-1C	Amoxicillin;Ampicillin;Cephalothin;Piperacillin;Ticarcillin
+all_genes.ffn	EFLNABAC_00053	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	EFLNABAC_00054	2	1200	+	(Tet)tetA	77-1275/1275	===============	0/0	94.04	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	EFLNABAC_00057	1	861	+	blaTEM-1C_1	1-861/861	===============	0/0	100.00	100.00	resfinder	FJ560503	blaTEM-1C	Amoxicillin;Ampicillin;Cephalothin;Piperacillin;Ticarcillin
+all_genes.ffn	GLHDIFMJ_00077	1	1206	+	tet(B)	1-1206/1206	===============	0/0	100.00	100.00	ncbi	NG_048163.1	tetracycline efflux MFS transporter Tet(B)	TETRACYCLINE
+all_genes.ffn	NGHCFOFH_00109	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM

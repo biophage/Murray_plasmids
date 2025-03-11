@@ -1,0 +1,9 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	EGLDEIJF_00022	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	JODPIOMO_00002	1	843	+	(AGly)sph	1-843/843	===============	0/0	100.00	100.00	argannot	AY037297:2706-3548	(AGly)sph	
+all_genes.ffn	JODPIOMO_00004	1	795	+	APH(3')-IIa	1-795/795	===============	0/0	100.00	100.00	card	V00618.1:150-945	APH(3')-IIa is a transposon-encoded aminoglycoside phosphotransferase in E. coli	aminoglycoside
+all_genes.ffn	JODPIOMO_00056	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	JODPIOMO_00057	1	804	+	(AGly)strA	1-804/804	===============	0/0	100.00	100.00	argannot	AB366441:22458-23261	(AGly)strA	
+all_genes.ffn	JODPIOMO_00063	1	795	+	APH(3')-IIa	1-795/795	===============	0/0	100.00	100.00	card	V00618.1:150-945	APH(3')-IIa is a transposon-encoded aminoglycoside phosphotransferase in E. coli	aminoglycoside
+all_genes.ffn	JODPIOMO_00065	1	843	+	(AGly)sph	1-843/843	===============	0/0	100.00	100.00	argannot	AY037297:2706-3548	(AGly)sph	
+all_genes.ffn	PDCNIDJI_00035	1	882	+	(Bla)blaKPC-4	1-882/882	===============	0/0	100.00	100.00	argannot	FJ473382:364-1245	(Bla)blaKPC-4	

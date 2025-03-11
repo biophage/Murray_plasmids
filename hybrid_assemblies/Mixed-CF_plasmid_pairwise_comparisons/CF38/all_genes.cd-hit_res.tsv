@@ -1,0 +1,2 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	HFPIGJKB_00007	1	795	+	APH(3')-IIa	1-795/795	===============	0/0	100.00	100.00	card	V00618.1:150-945	APH(3')-IIa is a transposon-encoded aminoglycoside phosphotransferase in E. coli	aminoglycoside

@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	FAJMMNMI_00062	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	FAJMMNMI_00063	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	IFKPKKDG_00007	1	420	+	fosA_gen	1-420/420	===============	0/0	100.00	100.00	ncbi	NG_047884.1	FosA family fosfomycin resistance glutathione transferase	FOSFOMYCIN
+all_genes.ffn	NFEFEKLK_00057	1	876	+	(Bla)blaCTX-M-1	1-876/876	===============	0/0	100.00	100.00	argannot	X92506:63-938	(Bla)blaCTX-M-1	

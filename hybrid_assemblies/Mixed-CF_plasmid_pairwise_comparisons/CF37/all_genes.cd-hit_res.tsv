@@ -1,0 +1,4 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	FFMPFOLF_00001	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	KFBJLGMA_00002	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	OPKMJDNJ_00008	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN

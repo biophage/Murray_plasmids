@@ -1,0 +1,32 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	GBAEDIJO_00032	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	GBAEDIJO_00034	1	861	+	aac(3)-IId	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_047251.1	aminoglycoside N-acetyltransferase AAC(3)-IId	GENTAMICIN
+all_genes.ffn	GBAEDIJO_00044	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	GBAEDIJO_00045	28	654	+	(Tet)tetR	1-651/651	========/======	1/24	96.31	96.31	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	GBAEDIJO_00046	1	837	+	aph(6)-Id	1-837/837	===============	0/0	100.00	100.00	ncbi	NG_047466.1	aminoglycoside O-phosphotransferase APH(6)-Id	STREPTOMYCIN
+all_genes.ffn	GBAEDIJO_00047	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	GBAEDIJO_00048	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	GBAEDIJO_00050	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	GBAEDIJO_00056	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	GBAEDIJO_00057	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	GBAEDIJO_00058	76	549	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	LAHDCIMN_00053	1	1206	+	tet(B)	1-1206/1206	===============	0/0	100.00	100.00	ncbi	NG_048163.1	tetracycline efflux MFS transporter Tet(B)	TETRACYCLINE
+all_genes.ffn	LAHDCIMN_00061	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	OIBCAOBB_00003	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	OIBCAOBB_00004	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	OIBCAOBB_00005	1	816	+	sul2_3	1-816/816	===============	0/0	100.00	100.00	resfinder	HQ840942	sul2	Sulfamethoxazole
+all_genes.ffn	OIBCAOBB_00010	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	OIBCAOBB_00020	127	600	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	OIBCAOBB_00021	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	OIBCAOBB_00023	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	PAIKIIFA_00097	127	600	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	PAIKIIFA_00098	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	PAIKIIFA_00099	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	PAIKIIFA_00106	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	PAIKIIFA_00108	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	PAIKIIFA_00109	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	PAIKIIFA_00110	1	837	+	aph(6)-Id	1-837/837	===============	0/0	100.00	100.00	ncbi	NG_047466.1	aminoglycoside O-phosphotransferase APH(6)-Id	STREPTOMYCIN
+all_genes.ffn	PAIKIIFA_00111	28	654	+	(Tet)tetR	1-651/651	========/======	1/24	96.31	96.31	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	PAIKIIFA_00112	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	PAIKIIFA_00122	1	861	+	aac(3)-IId	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_047251.1	aminoglycoside N-acetyltransferase AAC(3)-IId	GENTAMICIN
+all_genes.ffn	PAIKIIFA_00124	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM

@@ -1,0 +1,14 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	EHNDALHD_00026	1	876	+	(Bla)blaCTX-M-27	1-876/876	===============	0/0	100.00	100.00	argannot	AY156923:1-876	(Bla)blaCTX-M-27	
+all_genes.ffn	GPMEKJJC_00036	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	INBJECIF_00010	1	876	+	(Bla)blaCTX-M-15	1-876/876	===============	0/0	100.00	100.00	argannot	JQ686199:261-1136	(Bla)blaCTX-M-15	
+all_genes.ffn	INBJECIF_00014	1	549	+	(Phe)catB4	1-549/549	===============	0/0	100.00	100.00	argannot	EU935739:59054-59602	(Phe)catB4	
+all_genes.ffn	INBJECIF_00143	1	885	+	mphE	1-885/885	===============	0/0	100.00	100.00	card	DQ839391.1:13757-12872	mphE is a macrolide phosphotransferase and resistance gene identified on a plasmid pRSB105	macrolide
+all_genes.ffn	INBJECIF_00144	1	1476	+	(MLS)msr(E)	1-1476/1476	===============	0/0	100.00	100.00	argannot	JF769133:7246-8721	(MLS)msr(E)	
+all_genes.ffn	INBJECIF_00158	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	INBJECIF_00159	1	804	+	(AGly)strA	1-804/804	===============	0/0	100.00	100.00	argannot	AB366441:22458-23261	(AGly)strA	
+all_genes.ffn	PHLKHDHM_00013	1	600	+	AAC(6')-Ib-cr	1-600/600	===============	0/0	100.00	100.00	card	DQ303918:0-600	AAC(6')-Ib-cr is an aminoglycoside acetyltransferase encoded by plasmids transposons integrons in Enterobacteriaceae. The aac(6')-Ib-cr variant gene can induce resistance against aminoglycoside and fluoroquinolone simultaneously	aminoglycoside;fluoroquinolone
+all_genes.ffn	PHLKHDHM_00014	46	876	+	(Bla)blaOXA-1	1-831/831	===============	0/0	100.00	100.00	argannot	JQ682867:1-831	(Bla)blaOXA-1	
+all_genes.ffn	PHLKHDHM_00015	1	549	+	(Phe)catB4	1-549/549	===============	0/0	100.00	100.00	argannot	EU935739:59054-59602	(Phe)catB4	
+all_genes.ffn	PHLKHDHM_00019	1	876	+	(Bla)blaCTX-M-15	1-876/876	===============	0/0	100.00	100.00	argannot	JQ686199:261-1136	(Bla)blaCTX-M-15	
+all_genes.ffn	PHLKHDHM_00157	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	

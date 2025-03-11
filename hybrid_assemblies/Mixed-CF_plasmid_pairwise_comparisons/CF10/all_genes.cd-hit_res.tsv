@@ -1,0 +1,11 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	EIMCANPF_00009	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	EIMCANPF_00015	1	633	+	AAC(6')-Ib7	154-786/786	..=============	0/0	80.53	99.68	card	KR091911.1:75350-74564	AAC(6')-Ib7 is a plasmid-encoded aminoglycoside acetyltransferase in E. cloacae and C. freundii	aminoglycoside
+all_genes.ffn	EIMCANPF_00023	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	FPKOOCPD_00014	1	1146	+	(Bla)blaCMY-15	1-1146/1146	===============	0/0	100.00	99.91	argannot	AJ555823:1-1146	(Bla)blaCMY-15	
+all_genes.ffn	IGLHAJPH_00021	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	IGLHAJPH_00028	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	IGLHAJPH_00030	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	99.87	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	IGLHAJPH_00034	1	861	+	aac(3)-IId	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_047251.1	aminoglycoside N-acetyltransferase AAC(3)-IId	GENTAMICIN
+all_genes.ffn	IGLHAJPH_00099	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	JNMBPONL_00071	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	

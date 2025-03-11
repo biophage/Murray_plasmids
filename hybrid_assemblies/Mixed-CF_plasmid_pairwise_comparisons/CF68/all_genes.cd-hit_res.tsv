@@ -1,0 +1,28 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	DNJFDDPG_00005	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	DNJFDDPG_00019	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	DNJFDDPG_00020	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	DNJFDDPG_00080	1	861	+	(AGly)aac3-IIa	1-861/861	===============	0/0	100.00	99.77	argannot	X51534:91-951	(AGly)aac3-IIa	
+all_genes.ffn	DNJFDDPG_00082	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	DNJFDDPG_00089	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	DNJFDDPG_00091	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	DNJFDDPG_00092	127	600	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	EIDPLJFE_00012	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	99.56	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	EIDPLJFE_00105	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	EIDPLJFE_00107	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_047343.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	EIDPLJFE_00108	1	498	+	(Tmt)dfrA12	1-498/498	===============	0/0	100.00	100.00	argannot	Z21672:310-807	(Tmt)dfrA12	
+all_genes.ffn	EIDPLJFE_00168	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	HLJMBOBG_00059	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	HLJMBOBG_00060	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	HLJMBOBG_00074	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	HLJMBOBG_00081	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	HLJMBOBG_00083	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	HLJMBOBG_00084	127	600	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	KKFICEEL_00005	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	KKFICEEL_00019	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	KKFICEEL_00020	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	KKFICEEL_00080	1	861	+	(AGly)aac3-IIa	1-861/861	===============	0/0	100.00	99.77	argannot	X51534:91-951	(AGly)aac3-IIa	
+all_genes.ffn	KKFICEEL_00082	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	KKFICEEL_00089	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	KKFICEEL_00091	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	KKFICEEL_00092	127	600	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	

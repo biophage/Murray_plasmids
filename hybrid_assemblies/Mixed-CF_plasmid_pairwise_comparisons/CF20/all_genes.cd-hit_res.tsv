@@ -1,0 +1,69 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	GNNNMMDK_00099	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047430.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	GNNNMMDK_00105	1	768	+	(Sul)sul3	1-769/792	========/======	1/1	96.97	99.87	argannot	HQ875016:7396-8187	(Sul)sul3	
+all_genes.ffn	GNNNMMDK_00107	1	333	+	qacH	1-333/333	===============	0/0	100.00	91.59	card	DQ149925.1:188-521	qacH is a subunit of the qac multidrug efflux pump in Vibrio cholerae	fluoroquinolone
+all_genes.ffn	GNNNMMDK_00108	1	780	+	aadA1	13-792/792	===============	0/0	98.48	99.87	ncbi	NG_047325.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA1	STREPTOMYCIN
+all_genes.ffn	GNNNMMDK_00109	1	1260	+	(Phe)cmlA1	1-1260/1260	===============	0/0	100.00	99.92	argannot	M64556:601-1860	(Phe)cmlA1	
+all_genes.ffn	GNNNMMDK_00110	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_051846.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	GNNNMMDK_00123	1	1215	+	floR	1-1215/1215	===============	0/0	100.00	99.83	card	AF231986:3307-4522	floR is a plasmid or chromosome-encoded chloramphenicol exporter that is found in Bordetella bronchiseptica Escherichia coli Klebsiella pneumoniae Salmonella enterica subsp. enterica serovar Typhimurium str. DT104 and Vibrio cholerae	phenicol
+all_genes.ffn	GNNNMMDK_00127	49	864	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	GNNNMMDK_00133	1	1026	+	(AGly)aph4-Ia	1-1026/1026	===============	0/0	100.00	100.00	argannot	V01499:231-1256	(AGly)aph4-Ia	
+all_genes.ffn	GNNNMMDK_00135	1	777	+	AAC(3)-IV	1-777/777	===============	0/0	100.00	99.87	card	DQ241380.1:0-777	AAC(3)-IV is a plasmid-encoded aminoglycoside acetyltransferase in E. coli C. jejuni and P. stutzeri	aminoglycoside
+all_genes.ffn	GNNNMMDK_00137	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	GNNNMMDK_00138	1	416	+	(Fcyn)FosA	1-417/417	========/======	1/1	99.76	99.76	argannot	JQ343850:4619-5035	(Fcyn)FosA	
+all_genes.ffn	GNNNMMDK_00306	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	GNNNMMDK_00351	1	1626	+	(Col)mcr-1.1	1-1626/1626	===============	0/0	100.00	100.00	argannot	KP347127:22413-24038	(Col)mcr-1.1	
+all_genes.ffn	JLHCICFL_00035	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	100.00	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	JLHCICFL_00036	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	JLHCICFL_00047	1	1176	+	(Flq)OqxA	1-1176/1176	===============	0/0	100.00	100.00	argannot	EU370913:46652-47827	(Flq)OqxA	
+all_genes.ffn	JLHCICFL_00048	1	3153	+	(Flq)OqxBgb	1-3153/3153	===============	0/0	100.00	100.00	argannot	EU370913:47851-51003	(Flq)OqxBgb	
+all_genes.ffn	JLHCICFL_00054	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	JLHCICFL_00056	1	861	+	(AGly)aac3-IIa	1-861/861	===============	0/0	100.00	99.77	argannot	X51534:91-951	(AGly)aac3-IIa	
+all_genes.ffn	JLHCICFL_00063	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	99.88	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	JLHCICFL_00064	1	837	+	aph(6)-Id	1-837/837	===============	0/0	100.00	99.88	ncbi	NG_047466.1	aminoglycoside O-phosphotransferase APH(6)-Id	STREPTOMYCIN
+all_genes.ffn	JLHCICFL_00127	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	JLHCICFL_00128	1	756	+	(AGly)rmtB	1-756/756	===============	0/0	100.00	100.00	argannot	AB103506:1410-2165	(AGly)rmtB	
+all_genes.ffn	JLHCICFL_00131	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	JLHCICFL_00133	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_047343.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	JLHCICFL_00134	1	498	+	dfrA12	1-498/498	===============	0/0	100.00	100.00	ncbi	NG_047690.1	trimethoprim-resistant dihydrofolate reductase DfrA12	TRIMETHOPRIM
+all_genes.ffn	PIILKPHM_00090	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047430.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	PIILKPHM_00096	1	792	+	(Sul)sul3	1-792/792	===============	0/0	100.00	100.00	argannot	HQ875016:7396-8187	(Sul)sul3	
+all_genes.ffn	PIILKPHM_00098	1	333	+	qacH	1-333/333	===============	0/0	100.00	91.59	card	DQ149925.1:188-521	qacH is a subunit of the qac multidrug efflux pump in Vibrio cholerae	fluoroquinolone
+all_genes.ffn	PIILKPHM_00099	1	780	+	aadA1	13-792/792	===============	0/0	98.48	99.87	ncbi	NG_047325.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA1	STREPTOMYCIN
+all_genes.ffn	PIILKPHM_00100	1	1260	+	(Phe)cmlA1	1-1260/1260	===============	0/0	100.00	99.92	argannot	M64556:601-1860	(Phe)cmlA1	
+all_genes.ffn	PIILKPHM_00101	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_051846.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	PIILKPHM_00113	49	864	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	PIILKPHM_00119	1	1026	+	(AGly)aph4-Ia	1-1026/1026	===============	0/0	100.00	100.00	argannot	V01499:231-1256	(AGly)aph4-Ia	
+all_genes.ffn	PIILKPHM_00121	28	804	+	AAC(3)-IV	1-777/777	===============	0/0	100.00	99.87	card	DQ241380.1:0-777	AAC(3)-IV is a plasmid-encoded aminoglycoside acetyltransferase in E. coli C. jejuni and P. stutzeri	aminoglycoside
+all_genes.ffn	PIILKPHM_00123	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	PIILKPHM_00151	1	1920	+	tet(M)	1-1920/1920	===============	0/0	100.00	100.00	ncbi	NG_048250.1	tetracycline resistance ribosomal protection protein Tet(M)	TETRACYCLINE
+all_genes.ffn	PIILKPHM_00159	1	906	+	(MLS)mph(A)	1-906/906	===============	0/0	100.00	100.00	argannot	DQ445270:1626-2531	(MLS)mph(A)	
+all_genes.ffn	PIILKPHM_00164	1	861	+	aac(3)-IId	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_047251.1	aminoglycoside N-acetyltransferase AAC(3)-IId	GENTAMICIN
+all_genes.ffn	PIILKPHM_00167	1	3153	+	(Flq)OqxBgb	1-3153/3153	===============	0/0	100.00	100.00	argannot	EU370913:47851-51003	(Flq)OqxBgb	
+all_genes.ffn	PIILKPHM_00168	1	1176	+	(Flq)OqxA	1-1176/1176	===============	0/0	100.00	100.00	argannot	EU370913:46652-47827	(Flq)OqxA	
+all_genes.ffn	PIILKPHM_00307	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	PIILKPHM_00315	1	417	+	(Fcyn)FosA	1-417/417	===============	0/0	100.00	100.00	argannot	JQ343850:4619-5035	(Fcyn)FosA	
+all_genes.ffn	PIILKPHM_00316	1	876	+	(Bla)blaCTX-M-14	1-876/876	===============	0/0	100.00	100.00	argannot	AF252622:1741-2616	(Bla)blaCTX-M-14	
+all_genes.ffn	PIILKPHM_00370	1	1626	+	(Col)mcr-1.1	1-1626/1626	===============	0/0	100.00	100.00	argannot	KP347127:22413-24038	(Col)mcr-1.1	
+all_genes.ffn	PMDKDHBP_00095	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_051846.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	PMDKDHBP_00096	1	1260	+	(Phe)cmlA1	1-1260/1260	===============	0/0	100.00	99.92	argannot	M64556:601-1860	(Phe)cmlA1	
+all_genes.ffn	PMDKDHBP_00097	1	780	+	aadA1	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_047325.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA1	STREPTOMYCIN
+all_genes.ffn	PMDKDHBP_00098	1	333	+	qacH	1-333/333	===============	0/0	100.00	91.59	card	DQ149925.1:188-521	qacH is a subunit of the qac multidrug efflux pump in Vibrio cholerae	fluoroquinolone
+all_genes.ffn	PMDKDHBP_00100	1	792	+	(Sul)sul3	1-792/792	===============	0/0	100.00	100.00	argannot	HQ875016:7396-8187	(Sul)sul3	
+all_genes.ffn	PMDKDHBP_00107	1	840	+	(Sul)sul1	1-840/840	===============	0/0	100.00	100.00	argannot	AF071413:6700-7539	(Sul)sul1	
+all_genes.ffn	PMDKDHBP_00109	1	453	+	(Rif)arr3	1-453/453	===============	0/0	100.00	100.00	argannot	JF806499:1353-1805	(Rif)arr3	
+all_genes.ffn	PMDKDHBP_00110	1	633	+	catB3	1-633/633	===============	0/0	100.00	100.00	card	JX101693.1:58200-58833	catB3 is a plasmid or chromosome-encoded variant of the cat gene found in Salmonella typhimurium Acinetobacter baumannii and Escherichia coli	phenicol
+all_genes.ffn	PMDKDHBP_00111	1	831	+	(Bla)blaOXA-1	1-831/831	===============	0/0	100.00	100.00	argannot	JQ682867:1-831	(Bla)blaOXA-1	
+all_genes.ffn	PMDKDHBP_00112	1	600	+	AAC(6')-Ib-cr	1-600/600	===============	0/0	100.00	100.00	card	DQ303918:0-600	AAC(6')-Ib-cr is an aminoglycoside acetyltransferase encoded by plasmids transposons integrons in Enterobacteriaceae. The aac(6')-Ib-cr variant gene can induce resistance against aminoglycoside and fluoroquinolone simultaneously	aminoglycoside;fluoroquinolone
+all_genes.ffn	PMDKDHBP_00114	1	777	+	AAC(3)-IV	1-777/777	===============	0/0	100.00	99.87	card	DQ241380.1:0-777	AAC(3)-IV is a plasmid-encoded aminoglycoside acetyltransferase in E. coli C. jejuni and P. stutzeri	aminoglycoside
+all_genes.ffn	PMDKDHBP_00116	1	1026	+	(AGly)aph4-Ia	1-1026/1026	===============	0/0	100.00	100.00	argannot	V01499:231-1256	(AGly)aph4-Ia	
+all_genes.ffn	PMDKDHBP_00122	49	864	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	PMDKDHBP_00126	1	1215	+	floR	1-1215/1215	===============	0/0	100.00	100.00	ncbi	NG_047877.1	chloramphenicol/florfenicol efflux MFS transporter FloR	CHLORAMPHENICOL;FLORFENICOL
+all_genes.ffn	PMDKDHBP_00134	76	549	+	(Tmt)dfrA17	1-474/474	===============	0/0	100.00	100.00	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	PMDKDHBP_00274	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	99.83	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	PMDKDHBP_00275	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	99.85	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	PMDKDHBP_00280	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	PMDKDHBP_00290	1	1176	+	oqxA2	1-1176/1176	===============	0/0	100.00	99.92	ncbi	NG_050420.1	multidrug efflux RND transporter periplasmic adaptor subunit OqxA2	PHENICOL;QUINOLONE
+all_genes.ffn	PMDKDHBP_00291	1	3153	+	(Flq)OqxBgb	1-3153/3153	===============	0/0	100.00	99.97	argannot	EU370913:47851-51003	(Flq)OqxBgb	
+all_genes.ffn	PMDKDHBP_00304	1	876	+	(Bla)blaCTX-M-65	1-876/876	===============	0/0	100.00	100.00	argannot	EF418608:10-885	(Bla)blaCTX-M-65	
+all_genes.ffn	PMDKDHBP_00309	1	417	+	(Fcyn)FosA	1-417/417	===============	0/0	100.00	100.00	argannot	JQ343850:4619-5035	(Fcyn)FosA	

@@ -1,0 +1,4 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	FFICADOB_00009	1	534	+	(AGly)aac3-I	1-534/534	===============	0/0	100.00	99.06	argannot	X15852:1250-1783	(AGly)aac3-I	
+all_genes.ffn	FFICADOB_00011	1	780	+	ANT(3'')-IIa	193-972/972	..=============	0/0	80.25	100.00	card	X02340.1:222-1194	ANT(3'')-IIa is a aminoglycoside nucleotidyltransferase identified in Acinetobacter spp. via horizontal gene transfer mechanisms.	aminoglycoside
+all_genes.ffn	LKLNBOCN_00018	1	1206	+	tet(B)	1-1206/1206	===============	0/0	100.00	100.00	ncbi	NG_048161.1	tetracycline efflux MFS transporter Tet(B)	TETRACYCLINE

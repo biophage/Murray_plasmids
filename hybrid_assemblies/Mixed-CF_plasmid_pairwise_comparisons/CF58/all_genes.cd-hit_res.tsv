@@ -1,0 +1,28 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	ELCJLEPF_00082	1	1146	+	CMY-2	1-1146/1146	===============	0/0	100.00	100.00	card	X91840:0-1146	CMY-2 is a beta-lactamase found in Klebsiella pneumoniae	cephalosporin;cephamycin
+all_genes.ffn	ELCJLEPF_00120	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	ELCJLEPF_00124	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	ELCJLEPF_00157	1	1215	+	floR	1-1215/1215	===============	0/0	100.00	100.00	card	AF231986:3307-4522	floR is a plasmid or chromosome-encoded chloramphenicol exporter that is found in Bordetella bronchiseptica Escherichia coli Klebsiella pneumoniae Salmonella enterica subsp. enterica serovar Typhimurium str. DT104 and Vibrio cholerae	phenicol
+all_genes.ffn	ELCJLEPF_00160	1	1200	+	tet(A)	76-1275/1275	===============	0/0	94.12	100.00	card	AF534183.1:2970-4245	TetA is a tetracycline efflux pump found in many species of Gram-negative bacteria.	tetracycline
+all_genes.ffn	ELCJLEPF_00161	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	ELCJLEPF_00163	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	ELCJLEPF_00164	14	726	+	aph(3'')-Ib	116-828/828	..=============	0/0	86.11	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	ELCJLEPF_00204	115	648	+	(AGly)aadB	1-534/534	===============	0/0	100.00	100.00	argannot	JQ690540:4275-4808	(AGly)aadB	
+all_genes.ffn	ELCJLEPF_00206	1	1260	+	(Phe)cmlA5	1-1260/1260	===============	0/0	100.00	100.00	argannot	HQ141279:907-2166	(Phe)cmlA5	
+all_genes.ffn	FCFEIPNP_00104	1	1215	+	floR	1-1215/1215	===============	0/0	100.00	100.00	ncbi	NG_047866.1	chloramphenicol/florfenicol efflux MFS transporter FloR	CHLORAMPHENICOL;FLORFENICOL
+all_genes.ffn	FCFEIPNP_00107	1	1200	+	tet(A)	76-1275/1275	===============	0/0	94.12	100.00	card	AF534183.1:2970-4245	TetA is a tetracycline efflux pump found in many species of Gram-negative bacteria.	tetracycline
+all_genes.ffn	FCFEIPNP_00108	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	FCFEIPNP_00110	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	FCFEIPNP_00111	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	FCFEIPNP_00112	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	FCFEIPNP_00148	1	1146	+	CMY-2	1-1146/1146	===============	0/0	100.00	100.00	card	X91840:0-1146	CMY-2 is a beta-lactamase found in Klebsiella pneumoniae	cephalosporin;cephamycin
+all_genes.ffn	FCFEIPNP_00193	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	FCFEIPNP_00200	1	1035	+	(Tet)tetA	76-1114/1275	========/=====.	3/4	81.18	99.52	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	FCFEIPNP_00211	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	HPJEMMFJ_00042	1	1215	+	(Phe)floR	1-1215/1215	===============	0/0	100.00	99.83	argannot	AKLJ01000508:383-1597	(Phe)floR	
+all_genes.ffn	HPJEMMFJ_00045	1	1200	+	tet(A)	76-1275/1275	===============	0/0	94.12	100.00	card	AF534183.1:2970-4245	TetA is a tetracycline efflux pump found in many species of Gram-negative bacteria.	tetracycline
+all_genes.ffn	HPJEMMFJ_00046	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	HPJEMMFJ_00048	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	HPJEMMFJ_00049	1	804	+	aph(3'')-Ib	25-828/828	===============	0/0	97.10	100.00	ncbi	NG_056002.2	aminoglycoside O-phosphotransferase APH(3'')-Ib	STREPTOMYCIN
+all_genes.ffn	HPJEMMFJ_00050	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	HPJEMMFJ_00089	1	1146	+	CMY-2	1-1146/1146	===============	0/0	100.00	100.00	card	X91840:0-1146	CMY-2 is a beta-lactamase found in Klebsiella pneumoniae	cephalosporin;cephamycin

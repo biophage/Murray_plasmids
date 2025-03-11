@@ -1,0 +1,15 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	BIEDDNFG_00007	1	1200	+	(Tet)tetA	76-1275/1275	===============	0/0	94.12	99.92	argannot	JX424423:94438-95712	(Tet)tetA	
+all_genes.ffn	BIEDDNFG_00008	28	678	+	(Tet)tetR	1-651/651	===============	0/0	100.00	100.00	argannot	HF545434:53576-54226	(Tet)tetR	
+all_genes.ffn	BIEDDNFG_00016	1	861	+	(Bla)blaSHV-12	1-861/861	===============	0/0	100.00	100.00	argannot	FJ685654:24-860	(Bla)blaSHV-12	
+all_genes.ffn	BIEDDNFG_00022	1	792	+	(Sul)sul3	1-792/792	===============	0/0	100.00	100.00	argannot	HQ875016:7396-8187	(Sul)sul3	
+all_genes.ffn	BIEDDNFG_00024	1	333	+	qacH	1-333/333	===============	0/0	100.00	91.59	card	DQ149925.1:188-521	qacH is a subunit of the qac multidrug efflux pump in Vibrio cholerae	fluoroquinolone
+all_genes.ffn	BIEDDNFG_00025	1	780	+	aadA1	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_047325.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA1	STREPTOMYCIN
+all_genes.ffn	BIEDDNFG_00026	1	1260	+	(Phe)cmlA1	1-1260/1260	===============	0/0	100.00	99.92	argannot	M64556:601-1860	(Phe)cmlA1	
+all_genes.ffn	BIEDDNFG_00027	1	780	+	aadA2	13-792/792	===============	0/0	98.48	100.00	ncbi	NG_051846.1	ANT(3'')-Ia family aminoglycoside nucleotidyltransferase AadA2	STREPTOMYCIN
+all_genes.ffn	GKLJBFDB_00005	229	666	+	(Tmt)dfrA17	1-437/474	========/=====.	1/1	92.19	99.77	argannot	AB126604:98-571	(Tmt)dfrA17	
+all_genes.ffn	GKLJBFDB_00006	1	789	+	(AGly)aadA5	1-789/789	===============	0/0	100.00	100.00	argannot	AF137361:64-852	(AGly)aadA5	
+all_genes.ffn	GKLJBFDB_00009	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	GKLJBFDB_00096	1	876	+	(Bla)blaCTX-M-1	1-876/876	===============	0/0	100.00	100.00	argannot	X92506:63-938	(Bla)blaCTX-M-1	
+all_genes.ffn	KOFBOLBN_00012	1	1146	+	CMY-2	1-1146/1146	===============	0/0	100.00	100.00	card	X91840:0-1146	CMY-2 is a beta-lactamase found in Klebsiella pneumoniae	cephalosporin;cephamycin
+all_genes.ffn	OMPGIHKG_00027	1	876	+	(Bla)blaCTX-M-15	1-876/876	===============	0/0	100.00	100.00	argannot	JQ686199:261-1136	(Bla)blaCTX-M-15	

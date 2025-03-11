@@ -1,0 +1,5 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	BOBHMNMB_00004	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	JGCKOKHA_00006	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	NJGIOKDC_00009	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	99.63	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	OCIIIAMO_00001	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_047441.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN

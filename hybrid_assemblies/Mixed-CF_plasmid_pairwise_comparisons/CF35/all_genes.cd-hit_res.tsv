@@ -1,0 +1,4 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	BNKAOCDF_00037	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	NGIMHPBN_00024	1	876	+	(Bla)blaCTX-M-15	1-876/876	===============	0/0	100.00	100.00	argannot	JQ686199:261-1136	(Bla)blaCTX-M-15	
+all_genes.ffn	ODDGJEIC_00011	1	1191	+	tet(C)	1-1191/1191	===============	0/0	100.00	100.00	ncbi	NG_048181.1	tetracycline efflux MFS transporter Tet(C)	TETRACYCLINE

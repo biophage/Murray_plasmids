@@ -1,0 +1,6 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	CGNAMDFK_00026	1	861	+	blaTEM-52B_1	1-861/861	===============	0/0	100.00	100.00	resfinder	AF027199	blaTEM-52B	Amoxicillin;Ampicillin;Aztreonam;Cefepime;Cefotaxime;Ceftazidime;Ceftriaxone;Piperacillin;Ticarcillin
+all_genes.ffn	GEIBJOBD_00014	1	861	+	blaTEM-1C_1	1-861/861	===============	0/0	100.00	100.00	resfinder	FJ560503	blaTEM-1C	Amoxicillin;Ampicillin;Cephalothin;Piperacillin;Ticarcillin
+all_genes.ffn	GEIBJOBD_00016	1	861	+	(Bla)blaTEM-1D	1-861/861	===============	0/0	100.00	100.00	argannot	AF188200:215-1075	(Bla)blaTEM-1D	
+all_genes.ffn	LPCECICK_00035	1	1206	+	(Phe)floR	1-1215/1215	========/======	1/9	99.26	99.18	argannot	AKLJ01000508:383-1597	(Phe)floR	
+all_genes.ffn	OPKHKMCF_00051	1	1206	+	(Phe)floR	1-1215/1215	========/======	1/9	99.26	99.18	argannot	AKLJ01000508:383-1597	(Phe)floR	

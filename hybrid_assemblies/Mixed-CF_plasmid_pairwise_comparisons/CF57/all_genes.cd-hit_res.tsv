@@ -1,0 +1,12 @@
+#FILE	SEQUENCE	START	END	STRAND	GENE	COVERAGE	COVERAGE_MAP	GAPS	%COVERAGE	%IDENTITY	DATABASE	ACCESSION	PRODUCT	RESISTANCE
+all_genes.ffn	DJENADMO_00070	1	816	+	(Sul)sul2	1-816/816	===============	0/0	100.00	100.00	argannot	EU360945:1617-2432	(Sul)sul2	
+all_genes.ffn	DNBDDIJO_00032	1	861	+	blaTEM-1A_1	1-861/861	===============	0/0	100.00	100.00	resfinder	HM749966	blaTEM-1A	Amoxicillin;Ampicillin;Cephalothin;Piperacillin;Ticarcillin
+all_genes.ffn	LHCKGJNM_00001	1	816	+	aph(3')-Ia	1-816/816	===============	0/0	100.00	100.00	ncbi	NG_056047.1	aminoglycoside O-phosphotransferase APH(3')-Ia	KANAMYCIN
+all_genes.ffn	LHCKGJNM_00002	1	837	+	(AGly)strB	1-837/837	===============	0/0	100.00	100.00	argannot	FJ474091:264-1100	(AGly)strB	
+all_genes.ffn	LHCKGJNM_00003	1	804	+	(AGly)strA	1-804/804	===============	0/0	100.00	100.00	argannot	AB366441:22458-23261	(AGly)strA	
+all_genes.ffn	LHCKGJNM_00010	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	LHCKGJNM_00058	1	777	+	AAC(3)-IV	1-777/777	===============	0/0	100.00	100.00	card	DQ241380.1:0-777	AAC(3)-IV is a plasmid-encoded aminoglycoside acetyltransferase in E. coli C. jejuni and P. stutzeri	aminoglycoside
+all_genes.ffn	LHCKGJNM_00060	1	1026	+	(AGly)aph4-Ia	1-1026/1026	===============	0/0	100.00	100.00	argannot	V01499:231-1256	(AGly)aph4-Ia	
+all_genes.ffn	NFCEFGHK_00002	1	861	+	blaTEM-1	1-861/861	===============	0/0	100.00	100.00	ncbi	NG_050145.1	class A broad-spectrum beta-lactamase TEM-1	BETA-LACTAM
+all_genes.ffn	NFCEFGHK_00056	1	1176	+	(Flq)OqxA	1-1176/1176	===============	0/0	100.00	100.00	argannot	EU370913:46652-47827	(Flq)OqxA	
+all_genes.ffn	NFCEFGHK_00057	1	3153	+	(Flq)OqxBgb	1-3153/3153	===============	0/0	100.00	100.00	argannot	EU370913:47851-51003	(Flq)OqxBgb	
