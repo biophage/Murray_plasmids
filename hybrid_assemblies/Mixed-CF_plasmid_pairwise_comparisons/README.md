@@ -2,7 +2,7 @@
 ## Protein-level comparison of PAE and modern plasmids of the same Mixed-CF
 This directory contains the output of the pairwise comparisons we carried out across close families (CFs) that contain both pre-antibiotic era (PAE) and modern plasmids and in which we identified AMR genes (aka Mixed-CF AMR+; see our paper for details). The compared plasmids were selected randomly; the pMUR prefix identifies the PAE plasmids from the Murray collection.
 
-Each of the 29 sub-directories corresponds to a different Mixed-CF AMR+. ___Note that the Mixed-CFs listed here were generated from the analysis of PAE plasmid hybrid assemblies (i.e. produced by combining short- and long-read sequencing data)___.
+Each of the 29 sub-directories corresponds to a different Mixed-CF AMR+. ___Note that the Mixed-CFs listed here correspond to those generated from the analysis of PAE plasmid hybrid assemblies (i.e. produced by combining short- and long-read sequencing data)___.
 
 All sub-directories contain the following files:
 
