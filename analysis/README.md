@@ -5,6 +5,8 @@ This document describes the software and commands used to analyse the plasmid se
 > ___Software list___:
 > * enaBrowserTools: https://github.com/enasequence/enaBrowserTools
 > * unicycler: https://github.com/rrwick/Unicycler
+> * bwa: https://github.com/lh3/bwa
+> * polypolish: https://github.com/rrwick/Polypolish
 > * quast: https://github.com/ablab/quast
 > * kraken2: https://github.com/DerrickWood/kraken2
 > * bracken: https://github.com/jenniferlu717/Bracken
@@ -21,6 +23,7 @@ This document describes the software and commands used to analyse the plasmid se
 > * BLAST: https://blast.ncbi.nlm.nih.gov/doc/blast-help/downloadblastdata.html
 > * Panaroo: https://github.com/gtonkinhill/panaroo
 > * Clinker: https://github.com/gamcil/clinker
+> * Easyfig: https://mjsull.github.io/Easyfig/
 
 ## Murray plasmids
 
@@ -34,10 +37,41 @@ enaGroupGet -f fastq -d OUTPUT_DIR/ ACCESSION
 
 ### Genome Assembly
 
+#### - Illumina
 _Software_: unicycler v0.4.7  
 _Command_:  
 ```
 unicycler -1 READS_1.fastq.gz -2 READS_2.fastq.gz -o OUTPUT_DIR
+```
+
+#### - Hybrid
+_Software_: unicycler v0.4.7  
+_Command_:  
+```
+unicycler -1 SHORT-READS_1.fastq.gz -2 SHORT-READS_2.fastq.gz -l LONG-READS.fastq.gz -o OUTPUT_DIR
+```
+
+### Hybrid assembly polishing
+
+_Software_: bwa v0.7.17
+_Commands_:  
+```
+bwa index hybrid_assembly.fasta
+```
+```
+bwa mem -t 16 -a hybrid_assembly.fasta SHORT-READS_1.fastq.gz -o alignments_1.sam
+```
+```
+bwa mem -t 16 -a hybrid_assembly.fasta SHORT-READS_2.fastq.gz -o alignments_2.sam
+```
+
+_Software_: polypolish v0.5.0  
+_Commands_:  
+```
+polypolish_insert_filter.py --in1 alignments_1.sam --in2 alignments_2.sam --out1 filtered_1.sam --out2 filtered_2.sam
+```
+```
+polypolish hybrid_assembly.fasta filtered_1.sam filtered_2.sam > hybrid_assembly.polished.fasta
 ```
 
 ### Assembly metrics
@@ -69,10 +103,19 @@ python2.7 ~/plasmidVerify/plasmidverify.py -f unicycler/ASSEMBLY.fasta -o PVERIF
 ```
 
 ### Circularisation of plasmid sequences
+
+#### - Illumina assemblies
 _Software_: circlator v1.5.5  
 _Command_:  
 ```
 circlator all --threads 8 --b2r_min_read_length 50 --merge_min_length 100 --merge_min_length_merge 200 --assemble_spades_k 107,97,87,77,67,57,51 --b2r_discard_unmapped --clean_min_contig_length 100 /data/${d}-unicycler_noncircularised.fasta interleaved_reads.fastq circlator/OUTPUT_DIR
+```
+
+#### - Hybrid assemblies
+_Software_: circlator v1.5.5  
+_Command_:  
+```
+circlator all --threads 16 --b2r_discard_unmapped --clean_min_contig_length 1000 --merge_min_id 85 --merge_breaklen 1000 noncircularised_contigs.fasta long_reads.fastq circlator/OUTPUT_DIR
 ```
 
 ### Typing
@@ -204,3 +247,6 @@ _Command_:
 ```
 clinker input_files/*_prokka.gbk -p clinker/OUTPUT.html
 ```
+
+_Software_: Easyfig v2.2.2  
+_Command_:  See tutorial at https://github.com/mjsull/Easyfig/wiki/Tutorials
