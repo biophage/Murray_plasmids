@@ -7,7 +7,7 @@ Our study has been submitted for publication:
 Cazares, A. _et al._ "Pre and Post antibiotic epoch: insights into the historical spread of antimicrobial resistance". (2024).
 
 - Software and commands used to analyse the plasmid sequences are described in [analysis](https://github.com/biophage/Murray_plasmids/tree/master/analysis).
-- R code and files used for the statistical analyses can be found in [statistical_analyses](https://github.com/biophage/Murray_plasmids/tree/master/statistical_analyses).
-- R code used for plotting and visualisation is available in [plots_and_visualisation](https://github.com/biophage/Murray_plasmids/tree/master/plots_and_visualisation).
+- R code and files used for the statistical analyses are available in [statistical_analyses](https://github.com/biophage/Murray_plasmids/tree/master/statistical_analyses).
+- Data related to our plasmid hybrid genome assemblies can be found in [hybrid_assemblies](https://github.com/biophage/Murray_plasmids/tree/master/hybrid_assemblies).
 
 _A long-term compressed version of this repository, along with the assembled Murray plasmid sequences and large network files, will be deposited in a Zenodo archive upon publication._
