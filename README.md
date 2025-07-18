@@ -4,7 +4,7 @@ This is the repository for data related to our study on the evolution of PAE pla
 
 Our study has been submitted for publication:
 
-Cazares, A. _et al._ "Pre and Post antibiotic epoch: insights into the historical spread of antimicrobial resistance". (2024).
+Cazares, A. _et al._ "Pre and Post antibiotic epoch: insights into the historical spread of antimicrobial resistance". (2025).
 
 - Software and commands used to analyse the plasmid sequences are described in [analysis](https://github.com/biophage/Murray_plasmids/tree/master/analysis).
 - R code and files used for the statistical analyses are available in [statistical_analyses](https://github.com/biophage/Murray_plasmids/tree/master/statistical_analyses).
